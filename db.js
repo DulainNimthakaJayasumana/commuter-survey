@@ -1,7 +1,6 @@
 import { firebaseConfig, COLLECTION } from "./firebase-config.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
-export const DEMO = !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_");
 
 let dbPromise = null;
 function getDb() {
@@ -18,12 +17,11 @@ function getDb() {
 
 // Warm up the SDK early so submit is fast.
 export function preload() {
-  if (!DEMO) getDb().catch(() => { dbPromise = null; });
+  getDb().catch(() => { dbPromise = null; });
 }
 
 // Is the survey accepting responses? (Admins switch this in /admin.)
 export async function isSurveyOpen() {
-  if (DEMO) return !new URLSearchParams(location.search).has("closed");
   try {
     const { db, fs } = await getDb();
     const snap = await fs.getDoc(fs.doc(db, "config", "survey"));
@@ -35,11 +33,6 @@ export async function isSurveyOpen() {
 }
 
 export async function saveResponse(record) {
-  if (DEMO) {
-    console.info("[DEMO MODE] Response not saved. Add your Firebase config to firebase-config.js.", record);
-    await new Promise((r) => setTimeout(r, 500));
-    return "demo";
-  }
   const { db, fs } = await getDb();
   const ref = await fs.addDoc(fs.collection(db, COLLECTION), {
     ...record,

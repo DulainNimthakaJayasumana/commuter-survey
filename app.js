@@ -1,5 +1,5 @@
 import { LANGS, UI, QUESTIONS } from "./questions.js";
-import { saveResponse, preload, isSurveyOpen, DEMO } from "./db.js";
+import { saveResponse, preload, isSurveyOpen } from "./db.js";
 
 const $app = document.getElementById("app");
 const $progress = document.getElementById("progress");
@@ -180,7 +180,6 @@ function renderEnd(kind, anim) {
     <div class="icon"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <h1>${title}</h1>
     <p>${sub}</p>
-    ${DEMO ? `<p style="margin-top:14px;font-size:13px;color:var(--danger)">Demo mode — Firebase not configured, nothing was saved.</p>` : ""}
   </section>`;
 }
 

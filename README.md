@@ -13,8 +13,6 @@ Tally-style, one-question-per-page survey in Sinhala / English / Tamil. Plain HT
 5. **Web config:** Project settings (⚙) → General → Your apps → Web (`</>`) → register → copy `firebaseConfig`
    into `firebase-config.js`.
 
-Until step 5 is done, the survey and admin page run in **demo mode** (nothing saved; admin shows sample data).
-
 ## Admin page — `/admin`
 Sign in with Google (only emails in `isAdmin()` get in). It shows:
 - **Open / Closed switch** — turning it off blocks new responses (enforced by the rules) and shows a "survey closed" page.

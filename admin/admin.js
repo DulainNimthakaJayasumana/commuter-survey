@@ -3,8 +3,6 @@ import { QUESTIONS } from "/questions.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
 const XLSX_URL = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
-// Demo mode: Firebase not configured, or open /admin/?demo to try the page with sample data.
-const DEMO = !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_") || new URLSearchParams(location.search).has("demo");
 const TARGET = 250; // planned sample size from the proposal
 const PAGE_SIZE = 50;
 
@@ -91,19 +89,12 @@ function listen() {
 }
 
 async function setOpen(open) {
-  if (DEMO) { surveyOpen = open; renderApp(); return toast(open ? "Survey reopened (demo)" : "Survey stopped (demo)"); }
   const { db, fs } = fb;
   await fs.setDoc(fs.doc(db, "config", "survey"), { open, updatedAt: fs.serverTimestamp(), updatedBy: user.email }, { merge: true });
   toast(open ? "Survey is open — accepting responses" : "Survey stopped — new responses are blocked");
 }
 
 async function saveRow(id, changes, removed) {
-  if (DEMO) {
-    const r = rows.find((r) => r.id === id);
-    Object.assign(r, changes);
-    removed.forEach((k) => delete r[k]);
-    return;
-  }
   const { db, fs } = fb;
   const upd = { ...changes };
   removed.forEach((k) => (upd[k] = fs.deleteField()));
@@ -111,7 +102,6 @@ async function saveRow(id, changes, removed) {
 }
 
 async function deleteRows(ids) {
-  if (DEMO) { const set = new Set(ids); rows = rows.filter((r) => !set.has(r.id)); return; }
   const { db, fs } = fb;
   for (let i = 0; i < ids.length; i += 400) {
     const batch = fs.writeBatch(db);
@@ -121,7 +111,6 @@ async function deleteRows(ids) {
 }
 
 async function deleteRow(id) {
-  if (DEMO) { rows = rows.filter((r) => r.id !== id); return; }
   const { db, fs } = fb;
   await fs.deleteDoc(fs.doc(db, COLLECTION, id));
 }
@@ -129,7 +118,7 @@ async function deleteRow(id) {
 // ─────────────────────────────────────────────── views
 function renderWho() {
   if (!user) { $who.innerHTML = ""; return; }
-  $who.innerHTML = `<span>${esc(user.email)}</span>${DEMO ? "" : `<button id="signOut">Sign out</button>`}`;
+  $who.innerHTML = `<span>${esc(user.email)}</span><button id="signOut">Sign out</button>`;
   document.getElementById("signOut")?.addEventListener("click", () => { stopListening(); fb.A.signOut(fb.auth); });
 }
 
@@ -246,7 +235,6 @@ function renderApp() {
 
   const scrollY = window.scrollY;
   $root.innerHTML = `
-    ${DEMO ? `<div class="banner demo"><b>Demo mode.</b> Firebase isn't configured yet, so this page shows made-up sample data. Changes here aren't saved.</div>` : ""}
 
     <div class="card status">
       <div class="state">
@@ -393,7 +381,6 @@ function bind(shown, list) {
       await deleteRows(ids);
       selected.clear();
       toast(`Deleted ${ids.length} response${ids.length > 1 ? "s" : ""}`);
-      if (DEMO) renderApp();
     } catch (err) {
       console.error(err);
       toast("Delete failed: " + (err.code || err.message));
@@ -405,7 +392,7 @@ function bind(shown, list) {
   $root.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
     const r = rows.find((x) => x.id === b.dataset.del);
     if (!confirm(`Permanently delete this response?\n\nSubmitted ${fmtDate(r._ts)} (${r.status}). This can't be undone.`)) return;
-    try { await deleteRow(r.id); toast("Response deleted"); if (DEMO) renderApp(); }
+    try { await deleteRow(r.id); toast("Response deleted"); }
     catch (e) { console.error(e); toast("Delete failed: " + (e.code || e.message)); }
   }));
 }
@@ -460,7 +447,6 @@ function openEdit(id) {
     try {
       await saveRow(r.id, changes, removed);
       toast(`Saved (${Object.keys(changes).length + removed.length} field${Object.keys(changes).length + removed.length > 1 ? "s" : ""} changed)`);
-      if (DEMO) renderApp();
     } catch (e) { console.error(e); toast("Save failed: " + (e.code || e.message)); }
   };
 }
@@ -520,55 +506,8 @@ async function exportExcel(only) {
   }
 }
 
-// ─────────────────────────────────────────────── demo data
-function demoRows(n = 137) {
-  let seed = 7;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const pick = (arr, w) => {
-    if (!w) return arr[Math.floor(rnd() * arr.length)];
-    let x = rnd() * w.reduce((a, b) => a + b, 0);
-    for (let i = 0; i < arr.length; i++) { x -= w[i]; if (x <= 0) return arr[i]; }
-    return arr[arr.length - 1];
-  };
-  const vals = (id) => Q[id].options.map((o) => o.v);
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const ts = new Date(Date.now() - rnd() * 12 * 864e5);
-    const status = pick(["complete", "declined", "ineligible"], [88, 4, 8]);
-    const r = { id: "demo" + (1000 + i), status, lang: pick(["si", "en", "ta"], [62, 28, 10]), version: 2, durationSec: Math.round(120 + rnd() * 300), _ts: ts };
-    r.A1 = status === "declined" ? "no" : "yes";
-    if (status !== "declined") r.A2 = status === "ineligible" ? "1-2" : pick(["3-4", "5+"], [30, 70]);
-    if (status === "complete") {
-      r.A3 = pick(vals("A3"), [30, 12, 20, 10, 15, 6, 3, 1, 2, 1]);
-      r.A4 = pick(vals("A4"), [30, 28, 24, 15, 3]);
-      r.A5 = pick(vals("A5"), [45, 50, 5]);
-      r.A6 = pick(vals("A6"), [55, 35, 8, 2]);
-      if (r.A6 === "other") r.A6_other = "Relative's house";
-      r.B1 = pick(vals("B1"), [10, 30, 30, 20, 10]);
-      r.B2 = pick(vals("B2"), [55, 20, 10, 10, 5]);
-      r.B3 = pick(vals("B3"), [30, 35, 25, 10]);
-      r.B4 = pick(vals("B4")); r.B5 = pick(vals("B5"));
-      r.B6 = r.B2 === "walk_bicycle" ? "na" : pick(["seat", "stand"], [45, 55]);
-      r.B7 = pick(vals("B7"), [10, 20, 35, 25, 10]);
-      const base = (r.B6 === "stand" ? -1 : 0.6) + (r.B2 === "bus" ? -0.6 : 0.3) - r.B3 * 0.3;
-      ["C1", "C2", "C3"].forEach((c) => (r[c] = Math.max(-3, Math.min(3, Math.round(base + (rnd() - 0.5) * 3)))));
-      r.C4 = pick(vals("C4"), [10, 25, 35, 20, 10]);
-      r.D1 = pick(vals("D1"), [8, 20, 40, 25, 7]);
-      r.D2 = pick(vals("D2"), [5, 15, 35, 30, 15]);
-    }
-    out.push(r);
-  }
-  return out.sort((a, b) => b._ts - a._ts);
-}
-
 // ─────────────────────────────────────────────── start
 async function start() {
-  if (DEMO) {
-    user = { email: "demo@admin" };
-    rows = demoRows();
-    renderApp();
-    return;
-  }
   try {
     fb = await loadFirebase();
   } catch (e) {
