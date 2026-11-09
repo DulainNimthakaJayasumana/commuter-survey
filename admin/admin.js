@@ -3,13 +3,15 @@ import { QUESTIONS } from "/questions.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
 const XLSX_URL = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
-const DEMO = !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_");
+// Demo mode: Firebase not configured, or open /admin/?demo to try the page with sample data.
+const DEMO = !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_") || new URLSearchParams(location.search).has("demo");
 const TARGET = 250; // planned sample size from the proposal
 const PAGE_SIZE = 50;
 
 const $root = document.getElementById("root");
 const $who = document.getElementById("who");
 const $dlg = document.getElementById("editDlg");
+const $colsDlg = document.getElementById("colsDlg");
 const $toast = document.getElementById("toast");
 
 const Q = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
@@ -24,6 +26,13 @@ let unsub = [];
 let filter = { status: "complete", lang: "", search: "" };
 let page = 0;
 let denied = false;
+
+// Hidden columns are remembered in this browser and also left out of the Excel download.
+const HIDDEN_KEY = "admin-hidden-cols";
+let hidden = new Set(["A1", "A2"]);
+try { const h = JSON.parse(localStorage.getItem(HIDDEN_KEY)); if (Array.isArray(h)) hidden = new Set(h); } catch {}
+const visibleFields = () => FIELDS.filter((f) => !hidden.has(f));
+function saveHidden() { try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hidden])); } catch {} }
 
 // ─────────────────────────────────────────────── helpers
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -286,13 +295,17 @@ function renderApp() {
             ${["si", "en", "ta"].map((l) => `<option value="${l}" ${filter.lang === l ? "selected" : ""}>${LANG_NAME[l]}</option>`).join("")}
           </select>
           <input id="fSearch" type="search" placeholder="Search…" value="${esc(filter.search)}" />
+          <button class="btn" id="colsBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            Columns${hidden.size ? ` <span style="color:var(--ink-3)">(${hidden.size} hidden)</span>` : ""}
+          </button>
         </div>
       </div>
       <div class="scroll">
         <table>
           <thead><tr>
             <th>Submitted</th><th>Status</th><th>Lang</th>
-            ${FIELDS.filter((f) => f !== "A1" && f !== "A2").map((f) => `<th title="${esc(Q[f].q.en)}">${f}</th>`).join("")}
+            ${visibleFields().map((f) => `<th title="${esc(Q[f].q.en)}">${f}</th>`).join("")}
             <th></th>
           </tr></thead>
           <tbody>
@@ -301,7 +314,7 @@ function renderApp() {
                 <td>${fmtDate(r._ts)}</td>
                 <td><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td>
                 <td>${esc(r.lang?.toUpperCase())}</td>
-                ${FIELDS.filter((f) => f !== "A1" && f !== "A2").map((f) => {
+                ${visibleFields().map((f) => {
                   const v = r[f];
                   if (Q[f].type === "scale7" || typeof v === "number") return `<td class="num" title="${esc(label(f, v))}">${v ?? ""}</td>`;
                   const l = f === "A6" && v === "other" && r.A6_other ? `Other: ${r.A6_other}` : shortLabel(f, v);
@@ -334,6 +347,7 @@ function bind() {
     try { await setOpen(next); } catch (e) { console.error(e); toast("Couldn't change status: " + (e.code || e.message)); }
   });
   document.getElementById("xlsxBtn").addEventListener("click", exportExcel);
+  document.getElementById("colsBtn").addEventListener("click", openColumns);
   document.getElementById("fStatus").addEventListener("change", (e) => { filter.status = e.target.value; page = 0; renderApp(); });
   document.getElementById("fLang").addEventListener("change", (e) => { filter.lang = e.target.value; page = 0; renderApp(); });
   const s = document.getElementById("fSearch");
@@ -408,6 +422,80 @@ function openEdit(id) {
   };
 }
 
+// ─────────────────────────────────────────────── columns
+function openColumns() {
+  const filled = (f) => rows.filter((r) => r[f] !== undefined && r[f] !== "").length;
+  $colsDlg.innerHTML = `
+    <form method="dialog">
+      <div class="dlg-head">
+        <div><h3>Columns</h3><div class="meta">Unticked columns are hidden in the table and left out of the Excel download.</div></div>
+        <button class="btn sm" value="close">✕</button>
+      </div>
+      <div class="cols-list">
+        <div class="cols-tools">
+          <button type="button" class="btn sm" data-all="show">Show all</button>
+          <button type="button" class="btn sm" data-all="hide">Hide all</button>
+        </div>
+        ${QUESTIONS.map((q) => `
+          <div class="col-row">
+            <label class="col-check">
+              <input type="checkbox" data-col="${q.id}" ${hidden.has(q.id) ? "" : "checked"}>
+              <span><b>${q.id}</b> ${esc(q.q.en)}</span>
+            </label>
+            <span class="col-n" title="Responses with a value">${filled(q.id)}</span>
+            <button type="button" class="btn sm danger" data-clear="${q.id}" ${filled(q.id) ? "" : "disabled"}>Clear data</button>
+          </div>`).join("")}
+      </div>
+      <div class="dlg-foot"><button class="btn primary" value="close">Done</button></div>
+    </form>`;
+  $colsDlg.querySelectorAll("[data-col]").forEach((cb) => cb.addEventListener("change", () => {
+    cb.checked ? hidden.delete(cb.dataset.col) : hidden.add(cb.dataset.col);
+    saveHidden();
+  }));
+  $colsDlg.querySelectorAll("[data-all]").forEach((b) => b.addEventListener("click", () => {
+    hidden = b.dataset.all === "hide" ? new Set(FIELDS) : new Set();
+    saveHidden();
+    $colsDlg.querySelectorAll("[data-col]").forEach((cb) => (cb.checked = !hidden.has(cb.dataset.col)));
+  }));
+  $colsDlg.querySelectorAll("[data-clear]").forEach((b) => b.addEventListener("click", () => clearColumn(b.dataset.clear, b)));
+  $colsDlg.onclose = () => renderApp();
+  $colsDlg.showModal();
+}
+
+/** Permanently removes one question's answers from every response. */
+async function clearColumn(id, btn) {
+  const targets = rows.filter((r) => r[id] !== undefined || (id === "A6" && r.A6_other !== undefined));
+  const typed = prompt(
+    `Permanently delete ALL ${id} answers from ${targets.length} response(s)?\n\n` +
+    `"${Q[id].q.en}"\n\nThis can't be undone. Download an Excel backup first.\n\nType ${id} to confirm:`);
+  if (typed === null) return;
+  if (typed.trim().toUpperCase() !== id) return toast("Not deleted — confirmation didn't match");
+  btn.disabled = true;
+  btn.textContent = "Clearing…";
+  try {
+    const keys = id === "A6" ? ["A6", "A6_other"] : [id];
+    if (DEMO) {
+      targets.forEach((r) => keys.forEach((k) => delete r[k]));
+    } else {
+      const { db, fs } = fb;
+      for (let i = 0; i < targets.length; i += 400) {
+        const batch = fs.writeBatch(db);
+        targets.slice(i, i + 400).forEach((r) =>
+          batch.update(fs.doc(db, COLLECTION, r.id), Object.fromEntries(keys.map((k) => [k, fs.deleteField()]))));
+        await batch.commit();
+      }
+    }
+    btn.textContent = "Cleared";
+    btn.closest(".col-row").querySelector(".col-n").textContent = "0";
+    toast(`Cleared ${id} from ${targets.length} response(s)`);
+  } catch (e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = "Clear data";
+    toast("Clear failed: " + (e.code || e.message));
+  }
+}
+
 // ─────────────────────────────────────────────── Excel export
 async function exportExcel() {
   const btn = document.getElementById("xlsxBtn");
@@ -424,16 +512,16 @@ async function exportExcel() {
     });
     const coded = list.map((r) => {
       const o = base(r);
-      FIELDS.forEach((f) => { o[f] = r[f] ?? ""; if (f === "A6") o.A6_other = r.A6_other ?? ""; });
+      visibleFields().forEach((f) => { o[f] = r[f] ?? ""; if (f === "A6") o.A6_other = r.A6_other ?? ""; });
       return o;
     });
     const labelled = list.map((r) => {
       const o = base(r);
-      FIELDS.forEach((f) => { o[`${f} ${Q[f].q.en}`.slice(0, 80)] = label(f, r[f]); if (f === "A6") o["A6 other (specify)"] = r.A6_other ?? ""; });
+      visibleFields().forEach((f) => { o[`${f} ${Q[f].q.en}`.slice(0, 80)] = label(f, r[f]); if (f === "A6") o["A6 other (specify)"] = r.A6_other ?? ""; });
       return o;
     });
     const codebook = [];
-    QUESTIONS.forEach((q) => {
+    QUESTIONS.filter((q) => !hidden.has(q.id)).forEach((q) => {
       const opts = q.type === "scale7"
         ? [-3, -2, -1, 0, 1, 2, 3].map((v) => ({ v, l: q.points[v + 3].en }))
         : q.options.map((o) => ({ v: o.v, l: o.label.en }));
