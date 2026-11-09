@@ -23,6 +23,8 @@ export const UI = {
     submitting: "Submitting…",
     pressEnter: "press <b>Enter ↵</b>",
     required: "Please choose an answer",
+    otherPlaceholder: "Type your answer…",
+    otherRequired: "Please specify",
     changeLang: "Language",
     doneTitle: "Thank you for your time!",
     doneSub: "Your response has been recorded.",
@@ -53,6 +55,8 @@ export const UI = {
     submitting: "යොමු කරමින්…",
     pressEnter: "<b>Enter ↵</b> ඔබන්න",
     required: "කරුණාකර පිළිතුරක් තෝරන්න",
+    otherPlaceholder: "ඔබේ පිළිතුර ලියන්න…",
+    otherRequired: "කරුණාකර සඳහන් කරන්න",
     changeLang: "භාෂාව",
     doneTitle: "ඔබේ සහභාගීත්වයට ස්තූතියි!",
     doneSub: "ඔබේ ප්‍රතිචාරය සටහන් කර ඇත.",
@@ -83,6 +87,8 @@ export const UI = {
     submitting: "சமர்ப்பிக்கிறது…",
     pressEnter: "<b>Enter ↵</b> அழுத்தவும்",
     required: "தயவுசெய்து ஒரு பதிலைத் தேர்ந்தெடுக்கவும்",
+    otherPlaceholder: "உங்கள் பதிலை எழுதவும்…",
+    otherRequired: "தயவுசெய்து குறிப்பிடவும்",
     changeLang: "மொழி",
     doneTitle: "உங்கள் நேரத்திற்கு நன்றி!",
     doneSub: "உங்கள் பதில் பதிவு செய்யப்பட்டது.",
@@ -111,16 +117,26 @@ const ACCESS = [
   o("na", "Not applicable", "අදාළ නොවේ", "பொருந்தாது"),
 ];
 
-const FEEL_INTRO = {
-  en: "Think about your journey to the university today. During the journey, I felt…",
-  si: "අද විශ්වවිද්‍යාලයට පැමිණි ගමන ගැන සිතන්න. ගමනේදී මට දැනුණේ…",
-  ta: "இன்று பல்கலைக்கழகத்திற்கு வந்த பயணத்தைப் பற்றி சிந்தியுங்கள். பயணத்தின்போது நான் உணர்ந்தது…",
+const FEEL_PRE = {
+  en: "Think about your journey to the university TODAY. Choose the ONE option that best describes how you felt during the journey.",
+  si: "අද විශ්වවිද්‍යාලයට පැමිණි ගමන ගැන සිතන්න. ගමනේදී ඔබට දැනුණු ආකාරය වඩාත් හොඳින් විස්තර කරන එක් පිළිතුරක් තෝරන්න.",
+  ta: "இன்று பல்கலைக்கழகத்திற்கு வந்த பயணத்தைப் பற்றி சிந்தியுங்கள். பயணத்தின்போது நீங்கள் உணர்ந்ததை மிகச் சிறப்பாக விவரிக்கும் ஒரு பதிலைத் தேர்ந்தெடுக்கவும்.",
 };
-const FEEL_HELP = {
-  en: "The closer you tap to a word, the more strongly you felt that way.",
-  si: "ඔබ තෝරන කොටුව යම් වචනයකට කොතරම් ළඟද, ඔබට එසේ දැනුණේ එතරම් වැඩියෙනි.",
-  ta: "நீங்கள் தேர்ந்தெடுக்கும் புள்ளி ஒரு சொல்லுக்கு எவ்வளவு அருகில் உள்ளதோ, அந்த அளவுக்கு நீங்கள் அவ்வாறு உணர்ந்தீர்கள்.",
+
+// Builds the 7 labels (−3 … +3): Very / Quite / Slightly <left>, Neither, Slightly / Quite / Very <right>.
+const DEG = {
+  en: ["Very", "Quite", "Slightly"],
+  si: ["ඉතා", "තරමක්", "මඳක්"],
+  ta: ["மிகவும்", "ஓரளவு", "சற்று"],
 };
+const NEITHER = { en: "Neither", si: "දෙකම නොවේ", ta: "இரண்டுமில்லை" };
+function points(left, right) {
+  return [0, 1, 2, "n", 2, 1, 0].map((d, i) => {
+    if (d === "n") return NEITHER;
+    const word = i < 3 ? left : right;
+    return Object.fromEntries(["en", "si", "ta"].map((l) => [l, `${DEG[l][d]} ${word[l]}`]));
+  });
+}
 
 export const QUESTIONS = [
   // ---------------- Section A ----------------
@@ -173,6 +189,7 @@ export const QUESTIONS = [
       o(2, "2nd year", "2 වන වසර", "இரண்டாம் ஆண்டு"),
       o(3, "3rd year", "3 වන වසර", "மூன்றாம் ஆண்டு"),
       o(4, "4th year", "4 වන වසර", "நான்காம் ஆண்டு"),
+      o(5, "5th year or above", "5 වන වසර හෝ ඊට වැඩි", "ஐந்தாம் ஆண்டு அல்லது அதற்கு மேல்"),
     ],
   },
   {
@@ -195,6 +212,7 @@ export const QUESTIONS = [
       o("home", "Home", "නිවස", "வீடு"),
       o("boarding", "Boarding place", "බෝඩිම", "வாடகைத் தங்குமிடம் (போர்டிங்)"),
       o("hostel", "University hostel", "විශ්වවිද්‍යාල නේවාසිකාගාරය", "பல்கலைக்கழக விடுதி"),
+      o("other", "Other (please specify)", "වෙනත් (සඳහන් කරන්න)", "வேறு (குறிப்பிடவும்)", { other: true }),
     ],
   },
 
@@ -202,14 +220,14 @@ export const QUESTIONS = [
   {
     id: "B1", section: "B", type: "single",
     q: {
-      en: "Approximate distance from where you stay to the university",
-      si: "ඔබ නවාතැන් ගන්නා ස්ථානයේ සිට විශ්වවිද්‍යාලයට ඇති දළ දුර",
-      ta: "நீங்கள் தங்கும் இடத்திலிருந்து பல்கலைக்கழகத்திற்கான தோராயமான தூரம்",
+      en: "Approximate ONE-WAY distance from where you stay to the university",
+      si: "ඔබ නවාතැන් ගන්නා ස්ථානයේ සිට විශ්වවිද්‍යාලයට ඇති දළ දුර (එක් පැත්තකට පමණි)",
+      ta: "நீங்கள் தங்கும் இடத்திலிருந்து பல்கலைக்கழகத்திற்கான தோராயமான ஒருவழித் தூரம்",
     },
     help: {
-      en: "If you are not sure, you may check on Google Maps.",
-      si: "විශ්වාස නැත්නම් Google Maps මගින් බලන්න.",
-      ta: "உறுதியாகத் தெரியாவிட்டால் Google Maps இல் பார்க்கலாம்.",
+      en: "Not the return trip. If you are not sure, you may check on Google Maps.",
+      si: "ආපසු ගමන ඇතුළත් නොකරන්න. විශ්වාස නැත්නම් Google Maps මගින් බලන්න.",
+      ta: "திரும்பும் பயணத்தைச் சேர்க்க வேண்டாம். உறுதியாகத் தெரியாவிட்டால் Google Maps இல் பார்க்கலாம்.",
     },
     options: [
       o(1, "Less than 5 km", "කි.මී. 5ට අඩු", "5 கி.மீ.க்கும் குறைவு"),
@@ -242,15 +260,20 @@ export const QUESTIONS = [
   {
     id: "B3", section: "B", type: "single",
     q: {
-      en: "In one trip, how many times do you change from one vehicle to another?",
-      si: "එක් ගමනකදී ඔබ එක් වාහනයකින් තවත් වාහනයකට මාරු වන්නේ කී වතාවක්ද?",
-      ta: "ஒரு பயணத்தில் நீங்கள் எத்தனை முறை ஒரு வாகனத்திலிருந்து மற்றொரு வாகனத்திற்கு மாறுகிறீர்கள்?",
+      en: "On your trip from HOME (or where you stay) to the CAMPUS, how many times do you change from one vehicle to another?",
+      si: "නිවසේ (හෝ නවාතැනේ) සිට විශ්වවිද්‍යාලයට එන ගමනේදී ඔබ එක් වාහනයකින් තවත් වාහනයකට මාරු වන්නේ කී වතාවක්ද?",
+      ta: "வீட்டிலிருந்து (அல்லது தங்குமிடத்திலிருந்து) பல்கலைக்கழகத்திற்கு வரும் பயணத்தில், நீங்கள் எத்தனை முறை ஒரு வாகனத்திலிருந்து மற்றொரு வாகனத்திற்கு மாறுகிறீர்கள்?",
     },
     help: {
-      en: "Example: Three-wheeler → Bus → Train = 2 changes.",
-      si: "උදා: ත්‍රීරෝද රථය → බස් → දුම්රිය = මාරු වීම් 2යි.",
-      ta: "உதாரணம்: முச்சக்கர வண்டி → பேருந்து → ரயில் = 2 மாற்றங்கள்.",
+      en: "Count every change of vehicle, including changing from one bus to another bus. Walking is not counted.",
+      si: "එක් බසයකින් තවත් බසයකට මාරු වීම ද ඇතුළුව සෑම වාහන මාරුවක්ම ගණන් කරන්න. පයින් යාම ගණන් නොකෙරේ.",
+      ta: "ஒரு பேருந்திலிருந்து மற்றொரு பேருந்துக்கு மாறுவது உட்பட, ஒவ்வொரு வாகன மாற்றத்தையும் கணக்கிடுங்கள். நடப்பது கணக்கிடப்படாது.",
     },
+    examples: [
+      { en: "Home → one bus → Campus = <b>0 changes</b>", si: "නිවස → එක් බසයක් → විශ්වවිද්‍යාලය = <b>මාරු වීම් 0</b>", ta: "வீடு → ஒரு பேருந்து → பல்கலைக்கழகம் = <b>0 மாற்றங்கள்</b>" },
+      { en: "Home → Bus → another Bus → Campus = <b>1 change</b> (2 buses)", si: "නිවස → බස් → තවත් බසයක් → විශ්වවිද්‍යාලය = <b>මාරු වීම් 1</b> (බස් 2ක්)", ta: "வீடு → பேருந்து → இன்னொரு பேருந்து → பல்கலைக்கழகம் = <b>1 மாற்றம்</b> (2 பேருந்துகள்)" },
+      { en: "Home → Three-wheeler → Bus → Train → Campus = <b>2 changes</b>", si: "නිවස → ත්‍රීරෝද රථය → බස් → දුම්රිය → විශ්වවිද්‍යාලය = <b>මාරු වීම් 2</b>", ta: "வீடு → முச்சக்கர வண்டி → பேருந்து → ரயில் → பல்கலைக்கழகம் = <b>2 மாற்றங்கள்</b>" },
+    ],
     options: [
       o(0, "0", "0", "0"),
       o(1, "1", "1", "1"),
@@ -309,19 +332,40 @@ export const QUESTIONS = [
 
   // ---------------- Section C ----------------
   {
-    id: "C1", section: "C", type: "scale7", q: FEEL_INTRO, help: FEEL_HELP,
-    left: { en: "Very stressed", si: "ඉතා ආතතියෙන්", ta: "மிகுந்த மன அழுத்தத்துடன்" },
-    right: { en: "Very relaxed", si: "ඉතා සැහැල්ලුවෙන්", ta: "மிகவும் நிம்மதியாக" },
+    id: "C1", section: "C", type: "scale7", pre: FEEL_PRE,
+    q: {
+      en: "During the journey, did you feel stressed or relaxed?",
+      si: "ගමනේදී ඔබට ආතතියක් දැනුණාද, නැතහොත් සැහැල්ලුවක් දැනුණාද?",
+      ta: "பயணத்தின்போது நீங்கள் மன அழுத்தமாக உணர்ந்தீர்களா அல்லது நிம்மதியாக உணர்ந்தீர்களா?",
+    },
+    points: points(
+      { en: "stressed", si: "ආතතියෙන්", ta: "மன அழுத்தத்துடன்" },
+      { en: "relaxed", si: "සැහැල්ලුවෙන්", ta: "நிம்மதியாக" },
+    ),
   },
   {
-    id: "C2", section: "C", type: "scale7", q: FEEL_INTRO, help: FEEL_HELP,
-    left: { en: "Very worried", si: "ඉතා කනස්සල්ලෙන්", ta: "மிகுந்த கவலையுடன்" },
-    right: { en: "Very confident", si: "ඉතා විශ්වාසයෙන්", ta: "மிகுந்த நம்பிக்கையுடன்" },
+    id: "C2", section: "C", type: "scale7", pre: FEEL_PRE,
+    q: {
+      en: "During the journey, did you feel worried or confident?",
+      si: "ගමනේදී ඔබට කනස්සල්ලක් දැනුණාද, නැතහොත් විශ්වාසයක් දැනුණාද?",
+      ta: "பயணத்தின்போது நீங்கள் கவலையாக உணர்ந்தீர்களா அல்லது நம்பிக்கையுடன் உணர்ந்தீர்களா?",
+    },
+    points: points(
+      { en: "worried", si: "කනස්සල්ලෙන්", ta: "கவலையுடன்" },
+      { en: "confident", si: "විශ්වාසයෙන්", ta: "நம்பிக்கையுடன்" },
+    ),
   },
   {
-    id: "C3", section: "C", type: "scale7", q: FEEL_INTRO, help: FEEL_HELP,
-    left: { en: "Very hurried", si: "ඉතා කලබලයෙන්", ta: "மிகவும் அவசரமாக" },
-    right: { en: "Very calm", si: "ඉතා සන්සුන්ව", ta: "மிகவும் அமைதியாக" },
+    id: "C3", section: "C", type: "scale7", pre: FEEL_PRE,
+    q: {
+      en: "During the journey, did you feel hurried or calm?",
+      si: "ගමනේදී ඔබට කලබලයක් දැනුණාද, නැතහොත් සන්සුන් බවක් දැනුණාද?",
+      ta: "பயணத்தின்போது நீங்கள் அவசரமாக உணர்ந்தீர்களா அல்லது அமைதியாக உணர்ந்தீர்களா?",
+    },
+    points: points(
+      { en: "hurried", si: "කලබලයෙන්", ta: "அவசரமாக" },
+      { en: "calm", si: "සන්සුන්ව", ta: "அமைதியாக" },
+    ),
   },
   {
     id: "C4", section: "C", type: "single",

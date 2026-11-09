@@ -26,8 +26,8 @@ npx serve .
 |---|---|
 | status | `complete`, `declined` (A1 = No), `ineligible` (A2 = 1–2 days) |
 | lang | `si`, `en`, `ta` |
-| A1 | `yes` / `no` · A2 `1-2` / `3-4` / `5+` · A3 faculty code · A4 1–4 · A5 `male`/`female`/`prefer_not` · A6 `home`/`boarding`/`hostel` |
-| B1 | 1 = <5 km, 2 = 5–14, 3 = 15–29, 4 = 30–49, 5 = 50+ |
+| A1 | `yes` / `no` · A2 `1-2` / `3-4` / `5+` · A3 faculty code · A4 1–5 (5 = 5th year or above) · A5 `male`/`female`/`prefer_not` · A6 `home`/`boarding`/`hostel`/`other` (+ `A6_other` text) |
+| B1 (one-way) | 1 = <5 km, 2 = 5–14, 3 = 15–29, 4 = 30–49, 5 = 50+ |
 | B2 | `bus`, `train`, `three_wheeler`, `private`, `walk_bicycle` |
 | B3 | 0, 1, 2, 3 (=3 or more) |
 | B4, B5 | `walk`, `bus`, `bicycle`, `three_wheeler`, `dropped`, `na` |

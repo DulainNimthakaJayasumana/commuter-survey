@@ -19,6 +19,9 @@ if (new URLSearchParams(location.search).has("new")) {
   history.replaceState(null, "", location.pathname);
 }
 let state = load() || { page: 0, lang: null, answers: {}, startedAt: null, finished: null };
+// Guard against a saved position that no longer exists (e.g. after the questionnaire changes).
+if (!(state.page >= 0 && state.page < PAGES.length)) state.page = 0;
+if (state.page > 1 && !state.lang) state.page = 1;
 let busy = false;
 let advanceTimer = null;
 
@@ -56,6 +59,8 @@ function render(dir = "fwd") {
   // Focus the card (not an option) so Enter means "continue", never "pick the first answer".
   const card = $app.querySelector(".card");
   if (card) { card.tabIndex = -1; card.style.outline = "none"; card.focus({ preventScroll: true }); }
+  const other = document.getElementById("otherInput");
+  if (other) { other.focus({ preventScroll: true }); other.setSelectionRange(other.value.length, other.value.length); }
   window.scrollTo({ top: 0 });
 }
 
@@ -119,7 +124,8 @@ function renderQuestion(q, idx, anim) {
     <div class="eyebrow"><span class="qnum">${q.id}</span><span class="dot"></span><span>${u.sections[q.section]}</span></div>
     ${q.pre ? `<p class="pre">${esc(L(q.pre))}</p>` : ""}
     <h2 class="q">${esc(L(q.q))}</h2>
-    ${q.help ? `<p class="help">${esc(L(q.help))}</p>` : ""}`;
+    ${q.help ? `<p class="help">${esc(L(q.help))}</p>` : ""}
+    ${q.examples ? `<ul class="examples">${q.examples.map((x) => `<li>${L(x)}</li>`).join("")}</ul>` : ""}`;
 
   let body = "";
   if (q.type === "single") {
@@ -130,15 +136,19 @@ function renderQuestion(q, idx, anim) {
           <span class="key">${LETTERS[i]}</span><span class="lbl">${esc(L(o.label))}</span>
           <svg class="tick" width="18" height="18" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>`).join("")}
-    </div>`;
+    </div>
+    ${q.options.some((o) => o.other && o.v === ans) ? `
+      <input class="other-input" id="otherInput" type="text" maxlength="120" autocomplete="off"
+        placeholder="${esc(u.otherPlaceholder)}" value="${esc(state.answers[q.id + "_other"] || "")}">` : ""}`;
   } else if (q.type === "scale7") {
     body = `<div class="scale-wrap">
-      <div class="scale-ends"><span>${esc(L(q.left))}</span><span>${esc(L(q.right))}</span></div>
       <div class="scale" role="radiogroup">
-        ${[-3, -2, -1, 0, 1, 2, 3].map((v) => `
-          <button class="${ans === v ? "selected" : ""}" role="radio" aria-checked="${ans === v}" data-v="${v}" aria-label="${v}">${v > 0 ? "+" + v : v === 0 ? "0" : "−" + Math.abs(v)}</button>`).join("")}
+        ${[-3, -2, -1, 0, 1, 2, 3].map((v, i) => `
+          <button class="${ans === v ? "selected" : ""}" role="radio" aria-checked="${ans === v}" data-v="${v}">
+            <span class="num">${v > 0 ? "+" + v : v === 0 ? "0" : "−" + Math.abs(v)}</span>
+            <span class="plbl">${esc(L(q.points[i]))}</span>
+          </button>`).join("")}
       </div>
-      <div class="scale-hint"><span>←</span><span>→</span></div>
     </div>`;
   }
 
@@ -186,18 +196,38 @@ function showErr(msg) {
   if (el) el.textContent = msg;
 }
 
+// Returns an error message if the question isn't answered yet.
+function missingMsg(q) {
+  const v = state.answers[q.id];
+  if (v === undefined) return t().required;
+  if (q.options?.some((o) => o.other && o.v === v) && !(state.answers[q.id + "_other"] || "").trim()) return t().otherRequired;
+  return null;
+}
+
 function tryNext() {
   const key = PAGES[state.page];
   if (key === "lang" && !state.lang) return;
   const q = QMAP[key];
-  if (q && state.answers[q.id] === undefined) return showErr(t().required);
+  const err = q && missingMsg(q);
+  if (err) return showErr(err);
   if (q && state.page === PAGES.length - 1) return submit();
   go(1);
 }
 
 function choose(q, value, stop) {
+  const prev = state.answers[q.id];
   state.answers[q.id] = value;
   persist();
+  const opt = q.options?.find((o) => o.v === value);
+  if (opt?.other || q.options?.find((o) => o.v === prev)?.other) {
+    // Show / hide the "please specify" box.
+    clearTimeout(advanceTimer);
+    renderQuestion(q, state.page - 3, "");
+    const card = $app.querySelector(".card"); card.tabIndex = -1;
+    if (opt?.other) document.getElementById("otherInput")?.focus();
+    else advanceTimer = setTimeout(() => go(1), 380);
+    return;
+  }
   // Update selection in place (no re-render) so the click feels instant.
   $app.querySelectorAll("[aria-checked]").forEach((b) => {
     const match = q.type === "scale7" ? Number(b.dataset.v) === value : q.options[b.dataset.i].v === value;
@@ -219,11 +249,14 @@ function buildRecord(status) {
   const rec = {
     status,
     lang: state.lang,
-    version: 1,
+    version: 2,
     startedAt: state.startedAt,
     durationSec: state.startedAt ? Math.round((Date.now() - Date.parse(state.startedAt)) / 1000) : null,
   };
   for (const q of QUESTIONS) if (state.answers[q.id] !== undefined) rec[q.id] = state.answers[q.id];
+  for (const q of QUESTIONS) {
+    if (q.options?.some((o) => o.other && o.v === rec[q.id])) rec[q.id + "_other"] = (state.answers[q.id + "_other"] || "").trim().slice(0, 120);
+  }
   return rec;
 }
 
@@ -237,11 +270,11 @@ async function finish(status) {
 
 async function submit() {
   if (busy) return;
-  const missing = QUESTIONS.find((q) => state.answers[q.id] === undefined);
+  const missing = QUESTIONS.find((q) => missingMsg(q));
   if (missing) {
     state.page = PAGES.indexOf(missing.id);
     render("back");
-    return showErr(t().required);
+    return showErr(missingMsg(missing));
   }
   busy = true;
   const btn = $app.querySelector('[data-act="submit"]');
@@ -291,8 +324,19 @@ $app.addEventListener("click", (e) => {
   }
 });
 
+$app.addEventListener("input", (e) => {
+  if (e.target.id !== "otherInput") return;
+  state.answers[PAGES[state.page] + "_other"] = e.target.value;
+  persist();
+  showErr("");
+});
+
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || state.finished) return;
+  if (e.target.id === "otherInput") {
+    if (e.key === "Enter") { e.preventDefault(); tryNext(); }
+    return;
+  }
   const key = PAGES[state.page];
   const q = QMAP[key];
 
