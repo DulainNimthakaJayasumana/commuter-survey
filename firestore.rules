@@ -9,7 +9,16 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email_verified == true
         && request.auth.token.email.lower() in [
-          'dulainnimthaka@gmail.com'
+          'as2023493@sci.sjp.ac.lk',
+          'as2023383@sci.sjp.ac.lk',
+          'as2023523@sci.sjp.ac.lk',
+          'as2023656@sci.sjp.ac.lk',
+          'as2023596@sci.sjp.ac.lk',
+          'as2023366@sci.sjp.ac.lk',
+          'as2023557@sci.sjp.ac.lk',
+          'as2023651@sci.sjp.ac.lk',
+          'as2023672@sci.sjp.ac.lk',
+          'as2023424@sci.sjp.ac.lk'
         ];
     }
 
