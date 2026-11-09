@@ -11,7 +11,6 @@ const PAGE_SIZE = 50;
 const $root = document.getElementById("root");
 const $who = document.getElementById("who");
 const $dlg = document.getElementById("editDlg");
-const $colsDlg = document.getElementById("colsDlg");
 const $toast = document.getElementById("toast");
 
 const Q = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
@@ -26,13 +25,7 @@ let unsub = [];
 let filter = { status: "complete", lang: "", search: "" };
 let page = 0;
 let denied = false;
-
-// Hidden columns are remembered in this browser and also left out of the Excel download.
-const HIDDEN_KEY = "admin-hidden-cols";
-let hidden = new Set(["A1", "A2"]);
-try { const h = JSON.parse(localStorage.getItem(HIDDEN_KEY)); if (Array.isArray(h)) hidden = new Set(h); } catch {}
-const visibleFields = () => FIELDS.filter((f) => !hidden.has(f));
-function saveHidden() { try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hidden])); } catch {} }
+let selected = new Set(); // ids of ticked rows
 
 // ─────────────────────────────────────────────── helpers
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -115,6 +108,16 @@ async function saveRow(id, changes, removed) {
   const upd = { ...changes };
   removed.forEach((k) => (upd[k] = fs.deleteField()));
   await fs.updateDoc(fs.doc(db, COLLECTION, id), upd);
+}
+
+async function deleteRows(ids) {
+  if (DEMO) { const set = new Set(ids); rows = rows.filter((r) => !set.has(r.id)); return; }
+  const { db, fs } = fb;
+  for (let i = 0; i < ids.length; i += 400) {
+    const batch = fs.writeBatch(db);
+    ids.slice(i, i + 400).forEach((id) => batch.delete(fs.doc(db, COLLECTION, id)));
+    await batch.commit();
+  }
 }
 
 async function deleteRow(id) {
@@ -235,6 +238,8 @@ function renderApp() {
   const pct = Math.min(100, Math.round((complete.length / TARGET) * 100));
 
   const list = filtered();
+  const ids = new Set(rows.map((r) => r.id));
+  selected = new Set([...selected].filter((id) => ids.has(id))); // drop rows that no longer exist
   const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   page = Math.min(page, pages - 1);
   const shown = list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -295,26 +300,34 @@ function renderApp() {
             ${["si", "en", "ta"].map((l) => `<option value="${l}" ${filter.lang === l ? "selected" : ""}>${LANG_NAME[l]}</option>`).join("")}
           </select>
           <input id="fSearch" type="search" placeholder="Search…" value="${esc(filter.search)}" />
-          <button class="btn" id="colsBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-            Columns${hidden.size ? ` <span style="color:var(--ink-3)">(${hidden.size} hidden)</span>` : ""}
-          </button>
         </div>
       </div>
+      ${selected.size ? `
+      <div class="selbar">
+        <span><b>${selected.size}</b> selected</span>
+        ${selected.size < list.length ? `<button class="btn sm" id="selAll">Select all ${list.length} matching</button>` : ""}
+        <span class="sp"></span>
+        <button class="btn sm" id="selXlsx">Download selected</button>
+        <button class="btn sm danger" id="selDel">Delete selected</button>
+        <button class="btn sm" id="selClear">Clear selection</button>
+      </div>` : ""}
       <div class="scroll">
         <table>
           <thead><tr>
+            <th class="ck"><input type="checkbox" id="ckPage" aria-label="Select all on this page"
+              ${shown.length && shown.every((r) => selected.has(r.id)) ? "checked" : ""}></th>
             <th>Submitted</th><th>Status</th><th>Lang</th>
-            ${visibleFields().map((f) => `<th title="${esc(Q[f].q.en)}">${f}</th>`).join("")}
+            ${FIELDS.filter((f) => f !== "A1" && f !== "A2").map((f) => `<th title="${esc(Q[f].q.en)}">${f}</th>`).join("")}
             <th></th>
           </tr></thead>
           <tbody>
             ${shown.length ? shown.map((r) => `
-              <tr>
+              <tr class="${selected.has(r.id) ? "sel" : ""}">
+                <td class="ck"><input type="checkbox" data-ck="${esc(r.id)}" aria-label="Select row" ${selected.has(r.id) ? "checked" : ""}></td>
                 <td>${fmtDate(r._ts)}</td>
                 <td><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td>
                 <td>${esc(r.lang?.toUpperCase())}</td>
-                ${visibleFields().map((f) => {
+                ${FIELDS.filter((f) => f !== "A1" && f !== "A2").map((f) => {
                   const v = r[f];
                   if (Q[f].type === "scale7" || typeof v === "number") return `<td class="num" title="${esc(label(f, v))}">${v ?? ""}</td>`;
                   const l = f === "A6" && v === "other" && r.A6_other ? `Other: ${r.A6_other}` : shortLabel(f, v);
@@ -337,17 +350,18 @@ function renderApp() {
       </div>
     </div>`;
   window.scrollTo(0, scrollY);
-  bind();
+  const ckPage = document.getElementById("ckPage");
+  if (ckPage) ckPage.indeterminate = !ckPage.checked && shown.some((r) => selected.has(r.id));
+  bind(shown, list);
 }
 
-function bind() {
+function bind(shown, list) {
   document.getElementById("openSwitch").addEventListener("click", async () => {
     const next = !surveyOpen;
     if (!next && !confirm("Stop accepting responses?\n\nPeople opening the link will see a “survey closed” page. You can reopen it any time.")) return;
     try { await setOpen(next); } catch (e) { console.error(e); toast("Couldn't change status: " + (e.code || e.message)); }
   });
-  document.getElementById("xlsxBtn").addEventListener("click", exportExcel);
-  document.getElementById("colsBtn").addEventListener("click", openColumns);
+  document.getElementById("xlsxBtn").addEventListener("click", () => exportExcel());
   document.getElementById("fStatus").addEventListener("change", (e) => { filter.status = e.target.value; page = 0; renderApp(); });
   document.getElementById("fLang").addEventListener("change", (e) => { filter.lang = e.target.value; page = 0; renderApp(); });
   const s = document.getElementById("fSearch");
@@ -358,6 +372,35 @@ function bind() {
   });
   document.getElementById("prevPg").addEventListener("click", () => { page--; renderApp(); });
   document.getElementById("nextPg").addEventListener("click", () => { page++; renderApp(); });
+  // ── row selection
+  $root.querySelectorAll("[data-ck]").forEach((cb) => cb.addEventListener("change", () => {
+    cb.checked ? selected.add(cb.dataset.ck) : selected.delete(cb.dataset.ck);
+    renderApp();
+  }));
+  document.getElementById("ckPage").addEventListener("change", (e) => {
+    shown.forEach((r) => (e.target.checked ? selected.add(r.id) : selected.delete(r.id)));
+    renderApp();
+  });
+  document.getElementById("selAll")?.addEventListener("click", () => { list.forEach((r) => selected.add(r.id)); renderApp(); });
+  document.getElementById("selClear")?.addEventListener("click", () => { selected.clear(); renderApp(); });
+  document.getElementById("selXlsx")?.addEventListener("click", () => exportExcel(rows.filter((r) => selected.has(r.id))));
+  document.getElementById("selDel")?.addEventListener("click", async (e) => {
+    const ids = [...selected];
+    if (!confirm(`Permanently delete ${ids.length} selected response${ids.length > 1 ? "s" : ""}?\n\nThis can't be undone. Tip: click “Download selected” first to keep a copy.`)) return;
+    e.target.disabled = true;
+    e.target.textContent = "Deleting…";
+    try {
+      await deleteRows(ids);
+      selected.clear();
+      toast(`Deleted ${ids.length} response${ids.length > 1 ? "s" : ""}`);
+      if (DEMO) renderApp();
+    } catch (err) {
+      console.error(err);
+      toast("Delete failed: " + (err.code || err.message));
+      renderApp();
+    }
+  });
+
   $root.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => openEdit(b.dataset.edit)));
   $root.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
     const r = rows.find((x) => x.id === b.dataset.del);
@@ -422,87 +465,14 @@ function openEdit(id) {
   };
 }
 
-// ─────────────────────────────────────────────── columns
-function openColumns() {
-  const filled = (f) => rows.filter((r) => r[f] !== undefined && r[f] !== "").length;
-  $colsDlg.innerHTML = `
-    <form method="dialog">
-      <div class="dlg-head">
-        <div><h3>Columns</h3><div class="meta">Unticked columns are hidden in the table and left out of the Excel download.</div></div>
-        <button class="btn sm" value="close">✕</button>
-      </div>
-      <div class="cols-list">
-        <div class="cols-tools">
-          <button type="button" class="btn sm" data-all="show">Show all</button>
-          <button type="button" class="btn sm" data-all="hide">Hide all</button>
-        </div>
-        ${QUESTIONS.map((q) => `
-          <div class="col-row">
-            <label class="col-check">
-              <input type="checkbox" data-col="${q.id}" ${hidden.has(q.id) ? "" : "checked"}>
-              <span><b>${q.id}</b> ${esc(q.q.en)}</span>
-            </label>
-            <span class="col-n" title="Responses with a value">${filled(q.id)}</span>
-            <button type="button" class="btn sm danger" data-clear="${q.id}" ${filled(q.id) ? "" : "disabled"}>Clear data</button>
-          </div>`).join("")}
-      </div>
-      <div class="dlg-foot"><button class="btn primary" value="close">Done</button></div>
-    </form>`;
-  $colsDlg.querySelectorAll("[data-col]").forEach((cb) => cb.addEventListener("change", () => {
-    cb.checked ? hidden.delete(cb.dataset.col) : hidden.add(cb.dataset.col);
-    saveHidden();
-  }));
-  $colsDlg.querySelectorAll("[data-all]").forEach((b) => b.addEventListener("click", () => {
-    hidden = b.dataset.all === "hide" ? new Set(FIELDS) : new Set();
-    saveHidden();
-    $colsDlg.querySelectorAll("[data-col]").forEach((cb) => (cb.checked = !hidden.has(cb.dataset.col)));
-  }));
-  $colsDlg.querySelectorAll("[data-clear]").forEach((b) => b.addEventListener("click", () => clearColumn(b.dataset.clear, b)));
-  $colsDlg.onclose = () => renderApp();
-  $colsDlg.showModal();
-}
-
-/** Permanently removes one question's answers from every response. */
-async function clearColumn(id, btn) {
-  const targets = rows.filter((r) => r[id] !== undefined || (id === "A6" && r.A6_other !== undefined));
-  const typed = prompt(
-    `Permanently delete ALL ${id} answers from ${targets.length} response(s)?\n\n` +
-    `"${Q[id].q.en}"\n\nThis can't be undone. Download an Excel backup first.\n\nType ${id} to confirm:`);
-  if (typed === null) return;
-  if (typed.trim().toUpperCase() !== id) return toast("Not deleted — confirmation didn't match");
-  btn.disabled = true;
-  btn.textContent = "Clearing…";
-  try {
-    const keys = id === "A6" ? ["A6", "A6_other"] : [id];
-    if (DEMO) {
-      targets.forEach((r) => keys.forEach((k) => delete r[k]));
-    } else {
-      const { db, fs } = fb;
-      for (let i = 0; i < targets.length; i += 400) {
-        const batch = fs.writeBatch(db);
-        targets.slice(i, i + 400).forEach((r) =>
-          batch.update(fs.doc(db, COLLECTION, r.id), Object.fromEntries(keys.map((k) => [k, fs.deleteField()]))));
-        await batch.commit();
-      }
-    }
-    btn.textContent = "Cleared";
-    btn.closest(".col-row").querySelector(".col-n").textContent = "0";
-    toast(`Cleared ${id} from ${targets.length} response(s)`);
-  } catch (e) {
-    console.error(e);
-    btn.disabled = false;
-    btn.textContent = "Clear data";
-    toast("Clear failed: " + (e.code || e.message));
-  }
-}
-
 // ─────────────────────────────────────────────── Excel export
-async function exportExcel() {
+async function exportExcel(only) {
   const btn = document.getElementById("xlsxBtn");
   btn.disabled = true;
   try {
     const XLSX = await import(XLSX_URL);
-    const list = filtered();
+    const picked = Array.isArray(only);
+    const list = picked ? only : filtered();
     const base = (r) => ({
       ID: r.id,
       Submitted: r._ts || "",
@@ -512,16 +482,16 @@ async function exportExcel() {
     });
     const coded = list.map((r) => {
       const o = base(r);
-      visibleFields().forEach((f) => { o[f] = r[f] ?? ""; if (f === "A6") o.A6_other = r.A6_other ?? ""; });
+      FIELDS.forEach((f) => { o[f] = r[f] ?? ""; if (f === "A6") o.A6_other = r.A6_other ?? ""; });
       return o;
     });
     const labelled = list.map((r) => {
       const o = base(r);
-      visibleFields().forEach((f) => { o[`${f} ${Q[f].q.en}`.slice(0, 80)] = label(f, r[f]); if (f === "A6") o["A6 other (specify)"] = r.A6_other ?? ""; });
+      FIELDS.forEach((f) => { o[`${f} ${Q[f].q.en}`.slice(0, 80)] = label(f, r[f]); if (f === "A6") o["A6 other (specify)"] = r.A6_other ?? ""; });
       return o;
     });
     const codebook = [];
-    QUESTIONS.filter((q) => !hidden.has(q.id)).forEach((q) => {
+    QUESTIONS.forEach((q) => {
       const opts = q.type === "scale7"
         ? [-3, -2, -1, 0, 1, 2, 3].map((v) => ({ v, l: q.points[v + 3].en }))
         : q.options.map((o) => ({ v: o.v, l: o.label.en }));
@@ -540,7 +510,7 @@ async function exportExcel() {
     add(labelled, "Data (labels)", [{ wch: 22 }, { wch: 18 }, { wch: 11 }, { wch: 9 }, { wch: 10 }]);
     add(codebook, "Codebook", [{ wch: 10 }, { wch: 60 }, { wch: 16 }, { wch: 40 }]);
     const stamp = dayKey(new Date());
-    XLSX.writeFile(wb, `commuter-survey-${filter.status || "all"}-${stamp}.xlsx`);
+    XLSX.writeFile(wb, `commuter-survey-${picked ? "selected" : filter.status || "all"}-${stamp}.xlsx`);
     toast(`Downloaded ${list.length} response${list.length === 1 ? "" : "s"}`);
   } catch (e) {
     console.error(e);

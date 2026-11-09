@@ -113,6 +113,13 @@ td .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-si
 .tag.complete { background: var(--accent-soft); color: var(--accent); }
 .tag.declined, .tag.ineligible { background: #eef1f0; color: var(--ink-3); }
 td.actions { display: flex; gap: 6px; }
+th.ck, td.ck { width: 34px; padding-right: 0; text-align: center; }
+th.ck input, td.ck input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; vertical-align: middle; }
+tbody tr.sel { background: var(--accent-soft); }
+tbody tr.sel:hover { background: #dcebe3; }
+.selbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; margin-bottom: 10px;
+  background: var(--accent-soft); border: 1px solid #cfe3d8; border-radius: 10px; font-size: 13px; }
+.selbar .sp { flex: 1; }
 .pager { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; color: var(--ink-3); font-size: 12.5px; gap: 10px; flex-wrap: wrap; }
 .pager .btns { display: flex; gap: 6px; }
 
@@ -128,15 +135,6 @@ dialog::backdrop { background: rgba(10, 30, 22, .45); }
 .field label b { color: var(--ink); }
 .field select, .field input { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: #fff; }
 .dlg-foot { position: sticky; bottom: 0; background: #fff; padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
-
-.cols-list { padding: 8px 20px 12px; }
-.cols-tools { display: flex; gap: 6px; padding: 6px 0 10px; }
-.col-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.col-row:last-child { border-bottom: 0; }
-.col-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
-.col-check input { margin-top: 2px; accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
-.col-check b { color: var(--ink); margin-right: 4px; }
-.col-n { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 28px; text-align: right; }
 
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px;
   font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; }
