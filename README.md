@@ -2,14 +2,29 @@
 
 Tally-style, one-question-per-page survey in Sinhala / English / Tamil. Plain HTML + JS (no build step), saves to Firebase Firestore, hosts on Vercel.
 
-## 1. Firebase setup (≈5 min)
-1. https://console.firebase.google.com → **Add project**.
-2. **Build → Firestore Database → Create database** → production mode → region `asia-south1` (Mumbai).
-3. **Rules** tab → paste the contents of `firestore.rules` → **Publish**.
-4. **Project settings (⚙) → General → Your apps → Web (</>)** → register app → copy the `firebaseConfig` object.
-5. Paste it into `firebase-config.js` (replace the `YOUR_...` values).
+## 1. Firebase setup (≈10 min)
+1. **Firestore:** Build → Firestore Database → Create database → **Start in production mode** → Next.
+   Production mode keeps data until you delete it (there's no 30-day expiry like test mode).
+2. **Rules:** Firestore → **Rules** tab → paste all of `firestore.rules` → **Publish**.
+   The admin list is in `isAdmin()` — add each group member's Google email there and publish again.
+3. **Admin sign-in:** Build → Authentication → Get started → Sign-in method → **Google** → Enable → Save.
+4. **Allowed domains:** Authentication → Settings → Authorized domains → **Add domain** → your Vercel domain
+   (e.g. `usj-commuter-survey.vercel.app`). `localhost` is there already.
+5. **Web config:** Project settings (⚙) → General → Your apps → Web (`</>`) → register → copy `firebaseConfig`
+   into `firebase-config.js`.
 
-Until step 5 is done the site runs in **demo mode** (nothing saved, a red note shows on the thank-you page).
+Until step 5 is done, the survey and admin page run in **demo mode** (nothing saved; admin shows sample data).
+
+## Admin page — `/admin`
+Sign in with Google (only emails in `isAdmin()` get in). It shows:
+- **Open / Closed switch** — turning it off blocks new responses (enforced by the rules) and shows a "survey closed" page.
+- **Dashboard** — totals vs. the 250 target, responses per day, transport, distance, vehicle changes, stress, faculty, seat,
+  and average journey feeling (C1–C3) by transport mode. Updates live.
+- **Responses table** — filter by status / language, search, **Edit** any answer, **Delete** a response.
+- **Download Excel** — exports the current filter as `.xlsx` with three sheets: *Data (codes)* for Minitab,
+  *Data (labels)* readable answers, and *Codebook*.
+
+Tip: download the Excel file regularly as your own backup.
 
 ## 2. Run locally
 ```bash

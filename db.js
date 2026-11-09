@@ -21,6 +21,19 @@ export function preload() {
   if (!DEMO) getDb().catch(() => { dbPromise = null; });
 }
 
+// Is the survey accepting responses? (Admins switch this in /admin.)
+export async function isSurveyOpen() {
+  if (DEMO) return !new URLSearchParams(location.search).has("closed");
+  try {
+    const { db, fs } = await getDb();
+    const snap = await fs.getDoc(fs.doc(db, "config", "survey"));
+    return !snap.exists() || snap.data().open !== false;
+  } catch (e) {
+    console.warn("Could not read survey status", e);
+    return true;
+  }
+}
+
 export async function saveResponse(record) {
   if (DEMO) {
     console.info("[DEMO MODE] Response not saved. Add your Firebase config to firebase-config.js.", record);

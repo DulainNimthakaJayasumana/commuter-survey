@@ -1,10 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Anyone can ADD a response; nobody can read, edit or delete from the website.
-    // You (the project owner) still see everything in the Firebase console.
+
+    // ── Admins ──────────────────────────────────────────────────────────
+    // Google accounts allowed to open /admin. Add group members' emails here,
+    // then publish the rules again (Firebase console → Firestore → Rules).
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in [
+          'dulainnimthaka@gmail.com'
+        ];
+    }
+
+    // The survey is open unless an admin has switched it off in /admin.
+    function surveyOpen() {
+      return !exists(/databases/$(database)/documents/config/survey)
+        || get(/databases/$(database)/documents/config/survey).data.open != false;
+    }
+
+    // ── Responses ───────────────────────────────────────────────────────
     match /responses/{id} {
-      allow create: if request.resource.data.keys().hasOnly([
+      // Anyone can ADD a response while the survey is open.
+      allow create: if surveyOpen()
+        && request.resource.data.keys().hasOnly([
           'status', 'lang', 'version', 'startedAt', 'durationSec', 'submittedAt',
           'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A6_other',
           'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7',
@@ -13,8 +32,17 @@ service cloud.firestore {
         && request.resource.data.status in ['complete', 'declined', 'ineligible']
         && request.resource.data.lang in ['en', 'si', 'ta']
         && request.resource.data.submittedAt == request.time
-        && (!('A6_other' in request.resource.data) || (request.resource.data.A6_other is string && request.resource.data.A6_other.size() <= 120));
-      allow read, update, delete: if false;
+        && (!('A6_other' in request.resource.data)
+            || (request.resource.data.A6_other is string && request.resource.data.A6_other.size() <= 120));
+
+      // Only admins can see, edit or delete responses.
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── Survey settings (open / closed) ─────────────────────────────────
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

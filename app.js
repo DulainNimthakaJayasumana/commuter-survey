@@ -1,5 +1,5 @@
 import { LANGS, UI, QUESTIONS } from "./questions.js";
-import { saveResponse, preload, DEMO } from "./db.js";
+import { saveResponse, preload, isSurveyOpen, DEMO } from "./db.js";
 
 const $app = document.getElementById("app");
 const $progress = document.getElementById("progress");
@@ -23,6 +23,7 @@ let state = load() || { page: 0, lang: null, answers: {}, startedAt: null, finis
 if (!(state.page >= 0 && state.page < PAGES.length)) state.page = 0;
 if (state.page > 1 && !state.lang) state.page = 1;
 let busy = false;
+let closed = false;
 let advanceTimer = null;
 
 function load() {
@@ -42,6 +43,7 @@ function render(dir = "fwd") {
   const anim = dir === "back" ? "enter-back" : "enter";
 
   if (state.finished) return renderEnd(state.finished, anim);
+  if (closed) return renderClosed(anim);
 
   const key = PAGES[state.page];
   const qIndex = state.page - 3;
@@ -179,6 +181,20 @@ function renderEnd(kind, anim) {
     <h1>${title}</h1>
     <p>${sub}</p>
     ${DEMO ? `<p style="margin-top:14px;font-size:13px;color:var(--danger)">Demo mode — Firebase not configured, nothing was saved.</p>` : ""}
+  </section>`;
+}
+
+function renderClosed(anim) {
+  $progress.style.width = "0%";
+  $nav.hidden = true;
+  $langBtn.hidden = true;
+  $app.innerHTML = `
+  <section class="card end ${anim}">
+    <div class="icon"><svg width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></div>
+    <h1>This survey is now closed</h1>
+    <p lang="si" style="margin-bottom:6px">මෙම සමීක්ෂණය දැන් අවසන් කර ඇත.</p>
+    <p lang="ta" style="margin-bottom:14px">இந்த ஆய்வு தற்போது முடிவடைந்துவிட்டது.</p>
+    <p>Thank you for your interest · ස්තූතියි · நன்றி</p>
   </section>`;
 }
 
@@ -332,7 +348,7 @@ $app.addEventListener("input", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey || state.finished) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || state.finished || closed) return;
   if (e.target.id === "otherInput") {
     if (e.key === "Enter") { e.preventDefault(); tryNext(); }
     return;
@@ -366,3 +382,6 @@ $langBtn.addEventListener("click", () => { state.returnTo = state.page; state.pa
 
 preload();
 render();
+isSurveyOpen().then((open) => {
+  if (!open && !state.finished) { closed = true; render(); }
+});
