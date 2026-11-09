@@ -89,7 +89,7 @@ function renderIntro(anim) {
     </div>
     <p class="blurb" lang="${introLang}">${BLURB[introLang]}</p>
     <div class="chips">
-      <span class="chip">⏱ ~5 min</span>
+      <span class="chip">⏱ ~2 min</span>
       <span class="chip">🔒 Anonymous · නිර්නාමික · அநாமதேய</span>
       <span class="chip">🙋 Voluntary · ස්වේච්ඡා · விருப்பத்தின் பேரில்</span>
     </div>
