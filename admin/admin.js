@@ -199,7 +199,7 @@ function feelingByMode(list) {
       <span class="track"><span class="fill ${i.avg < 0 ? "neg" : ""}" style="left:${left}%;width:${w}%"></span><span class="mid"></span></span>
       <span class="n">${i.avg > 0 ? "+" : ""}${i.avg.toFixed(1)}</span></div>`;
   }).join("")}</div>
-  <div class="axis"><span>−3 stressed</span><span>0</span><span>+3 relaxed</span></div>`;
+  <div class="hbar axis-row"><span></span><span class="axis"><span>← stressed</span><span>0</span><span>relaxed →</span></span><span></span></div>`;
 }
 
 function perDay(list) {
@@ -260,8 +260,8 @@ function renderApp() {
       <div class="card kpi"><div class="label">Screened out</div><div class="value">${screened}</div>
         <div class="sub">${rows.filter((r) => r.status === "declined").length} declined · ${rows.filter((r) => r.status === "ineligible").length} &lt; 3 days/week</div></div>
       <div class="card kpi"><div class="label">Median time</div><div class="value">${median ? `${Math.floor(median / 60)}:${String(median % 60).padStart(2, "0")}` : "–"}</div><div class="sub">minutes to complete</div></div>
-      <div class="card kpi"><div class="label">Language</div><div class="value" style="font-size:16px;line-height:1.5;padding-top:4px">
-        ${["si", "en", "ta"].map((l) => `${LANG_NAME[l]} <b>${complete.filter((r) => r.lang === l).length}</b>`).join("<br>")}</div></div>
+      <div class="card kpi lang-kpi"><div class="label">Language</div><div class="langs">
+        ${["si", "en", "ta"].map((l) => `<span>${LANG_NAME[l]} <b>${complete.filter((r) => r.lang === l).length}</b></span>`).join("")}</div></div>
     </div>
 
     <div class="charts">
@@ -302,16 +302,20 @@ function renderApp() {
       <div class="scroll">
         <table>
           <thead><tr>
-            <th class="ck"><input type="checkbox" id="ckPage" aria-label="Select all on this page"
-              ${shown.length && shown.every((r) => selected.has(r.id)) ? "checked" : ""}></th>
+            <th class="ck"><label><input type="checkbox" id="ckPage" aria-label="Select all on this page"
+              ${shown.length && shown.every((r) => selected.has(r.id)) ? "checked" : ""}></label></th>
+            <th></th>
             <th>Submitted</th><th>Status</th><th>Lang</th>
             ${FIELDS.filter((f) => f !== "A1" && f !== "A2").map((f) => `<th title="${esc(Q[f].q.en)}">${f}</th>`).join("")}
-            <th></th>
-          </tr></thead>
+            </tr></thead>
           <tbody>
             ${shown.length ? shown.map((r) => `
               <tr class="${selected.has(r.id) ? "sel" : ""}">
-                <td class="ck"><input type="checkbox" data-ck="${esc(r.id)}" aria-label="Select row" ${selected.has(r.id) ? "checked" : ""}></td>
+                <td class="ck"><label><input type="checkbox" data-ck="${esc(r.id)}" aria-label="Select row" ${selected.has(r.id) ? "checked" : ""}></label></td>
+                <td class="actions">
+                  <button class="btn sm" data-edit="${esc(r.id)}">Edit</button>
+                  <button class="btn sm danger" data-del="${esc(r.id)}">Delete</button>
+                </td>
                 <td>${fmtDate(r._ts)}</td>
                 <td><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td>
                 <td>${esc(r.lang?.toUpperCase())}</td>
@@ -321,10 +325,6 @@ function renderApp() {
                   const l = f === "A6" && v === "other" && r.A6_other ? `Other: ${r.A6_other}` : shortLabel(f, v);
                   return `<td title="${esc(label(f, v))}">${esc(l)}</td>`;
                 }).join("")}
-                <td class="actions">
-                  <button class="btn sm" data-edit="${esc(r.id)}">Edit</button>
-                  <button class="btn sm danger" data-del="${esc(r.id)}">Delete</button>
-                </td>
               </tr>`).join("") : `<tr><td colspan="30" class="empty" style="text-align:center">No responses match.</td></tr>`}
           </tbody>
         </table>

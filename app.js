@@ -1,6 +1,8 @@
 import { LANGS, UI, QUESTIONS } from "./questions.js";
 import { saveResponse, preload, isSurveyOpen } from "./db.js";
 
+if ("scrollRestoration" in history) history.scrollRestoration = "manual"; // always open a page at the top
+
 const $app = document.getElementById("app");
 const $progress = document.getElementById("progress");
 const $nav = document.getElementById("nav");
@@ -66,6 +68,14 @@ function render(dir = "fwd") {
   window.scrollTo({ top: 0 });
 }
 
+// Short description of the study, shown on the first page in one language at a time.
+const BLURB = {
+  en: "Two trips of the same length can feel very different. We are studying whether everyday travel hassles — delays, crowding, standing, changing vehicles — are linked to how stressed students feel when they arrive at university.",
+  si: "එකම දුරක් වුවද ගමන් දෙකක් එකිනෙකට බෙහෙවින් වෙනස් ලෙස දැනිය හැක. ප්‍රමාද වීම්, තදබදය, සිටගෙන යාම, වාහන මාරු කිරීම වැනි දෛනික ගමන් අපහසුතා, සිසුන් විශ්වවිද්‍යාලයට පැමිණෙන විට දැනෙන ආතතියට සම්බන්ධ දැයි අපි අධ්‍යයනය කරමු.",
+  ta: "ஒரே தூரமுள்ள இரண்டு பயணங்கள் மிகவும் வேறுபட்டதாக உணரப்படலாம். தாமதங்கள், நெரிசல், நின்றுகொண்டு பயணித்தல், வாகனம் மாறுதல் போன்ற தினசரி பயணச் சிரமங்கள், மாணவர்கள் பல்கலைக்கழகத்தை அடையும்போது உணரும் மன அழுத்தத்துடன் தொடர்புடையதா என்பதை நாம் ஆய்வு செய்கிறோம்.",
+};
+let introLang = "en";
+
 function renderIntro(anim) {
   $app.innerHTML = `
   <section class="card intro ${anim}">
@@ -73,11 +83,11 @@ function renderIntro(anim) {
     <h1>Beyond Travel Time</h1>
     <p class="sub">Commuter friction, micro-mobility and stress among USJ undergraduates<br>
       <span style="font-size:14px;color:var(--ink-mute)">Department of Statistics · Faculty of Applied Sciences · University of Sri Jayewardenepura</span></p>
-    <div class="blurbs">
-      <div class="blurb" lang="en"><b>English.</b> Two trips of the same length can feel very different. We are studying whether everyday travel hassles — delays, crowding, standing, changing vehicles — are linked to how stressed students feel when they arrive at university.</div>
-      <div class="blurb" lang="si"><b>සිංහල.</b> එකම දුරක් වුවද ගමන් දෙකක් එකිනෙකට බෙහෙවින් වෙනස් ලෙස දැනිය හැක. ප්‍රමාද වීම්, තදබදය, සිටගෙන යාම, වාහන මාරු කිරීම වැනි දෛනික ගමන් අපහසුතා, සිසුන් විශ්වවිද්‍යාලයට පැමිණෙන විට දැනෙන ආතතියට සම්බන්ධ දැයි අපි අධ්‍යයනය කරමු.</div>
-      <div class="blurb" lang="ta"><b>தமிழ்.</b> ஒரே தூரமுள்ள இரண்டு பயணங்கள் மிகவும் வேறுபட்டதாக உணரப்படலாம். தாமதங்கள், நெரிசல், நின்றுகொண்டு பயணித்தல், வாகனம் மாறுதல் போன்ற தினசரி பயணச் சிரமங்கள், மாணவர்கள் பல்கலைக்கழகத்தை அடையும்போது உணரும் மன அழுத்தத்துடன் தொடர்புடையதா என்பதை நாம் ஆய்வு செய்கிறோம்.</div>
+    <div class="blurb-tabs" role="tablist" aria-label="Read in">
+      ${[["en", "English"], ["si", "සිංහල"], ["ta", "தமிழ்"]].map(([c, n]) =>
+        `<button role="tab" class="${introLang === c ? "on" : ""}" aria-selected="${introLang === c}" data-blurb="${c}" lang="${c}">${n}</button>`).join("")}
     </div>
+    <p class="blurb" lang="${introLang}">${BLURB[introLang]}</p>
     <div class="chips">
       <span class="chip">⏱ ~5 min</span>
       <span class="chip">🔒 Anonymous · නිර්නාමික · அநாமதேய</span>
@@ -102,6 +112,7 @@ function renderLang(anim) {
           <span class="small">${LETTERS[i]} · ${l.sub}</span>
         </button>`).join("")}
     </div>
+    <div class="actions"><button class="btn ghost back" data-act="back">← Back · ආපසු · பின்</button></div>
   </section>`;
 }
 
@@ -113,6 +124,7 @@ function renderBrief(anim) {
     <ul class="brief">${u.brief.map((b) => `<li><span>${b}</span></li>`).join("")}</ul>
     <div class="actions">
       <button class="btn" data-act="next">${u.start} <span aria-hidden="true">→</span></button>
+      <button class="btn ghost back" data-act="back">← ${u.back}</button>
       <span class="hint kbd">${u.pressEnter}</span>
     </div>
   </section>`;
@@ -163,6 +175,7 @@ function renderQuestion(q, idx, anim) {
         ? `<button class="btn" data-act="submit">${u.submit} <span aria-hidden="true">✓</span></button>`
         : `<button class="btn" data-act="next">${u.ok} <span aria-hidden="true">✓</span></button>
            <span class="hint kbd">${u.pressEnter}</span>`}
+      <button class="btn ghost back" data-act="back">← ${u.back}</button>
     </div>
     <div class="err" id="err"></div>
   </section>`;
@@ -315,6 +328,8 @@ $app.addEventListener("click", (e) => {
   const key = PAGES[state.page];
 
   if (el.dataset.act === "next") return tryNext();
+  if (el.dataset.act === "back") return go(-1);
+  if (el.dataset.blurb) { introLang = el.dataset.blurb; return renderIntro(""); }
   if (el.dataset.act === "submit") return submit();
 
   if (el.dataset.lang) {

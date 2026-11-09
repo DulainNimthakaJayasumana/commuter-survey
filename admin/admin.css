@@ -58,7 +58,7 @@ button, input, select { font: inherit; color: inherit; }
 /* Status bar */
 .status { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .status .state { display: flex; align-items: center; gap: 12px; }
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+.pill { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .pill.open { background: var(--accent-soft); color: var(--accent); }
 .pill.closed { background: var(--danger-soft); color: var(--danger); }
@@ -74,6 +74,8 @@ button, input, select { font: inherit; color: inherit; }
 .kpi .label { color: var(--ink-3); font-size: 12.5px; margin-bottom: 6px; }
 .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
 .kpi .sub { color: var(--ink-3); font-size: 12px; margin-top: 4px; }
+.lang-kpi .langs { display: grid; gap: 2px; font-size: 15px; padding-top: 2px; }
+.lang-kpi .langs b { font-size: 17px; margin-left: 4px; }
 .target { height: 6px; border-radius: 999px; background: var(--accent-soft); margin-top: 8px; overflow: hidden; }
 .target > div { height: 100%; background: var(--accent); border-radius: 999px; }
 
@@ -89,7 +91,8 @@ button, input, select { font: inherit; color: inherit; }
 .diverge .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--ink-3); }
 .diverge .fill { position: absolute; top: 0; }
 .diverge .fill.neg { background: var(--neg); }
-.axis { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11.5px; margin-top: 8px; padding-left: calc(38% + 10px); padding-right: 44px; }
+.axis-row { margin-top: 6px; }
+.axis { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11.5px; white-space: nowrap; }
 .cols { display: flex; align-items: flex-end; gap: 4px; height: 130px; padding-top: 16px; }
 .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; min-width: 0; }
 .col .bar { width: 100%; max-width: 28px; background: var(--accent-2); border-radius: 4px 4px 0 0; min-height: 2px; }
@@ -112,8 +115,9 @@ td .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-si
 .tag.complete { background: var(--accent-soft); color: var(--accent); }
 .tag.declined, .tag.ineligible { background: #eef1f0; color: var(--ink-3); }
 td.actions { display: flex; gap: 6px; }
-th.ck, td.ck { width: 34px; padding-right: 0; text-align: center; }
-th.ck input, td.ck input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; vertical-align: middle; }
+th.ck, td.ck { width: 40px; padding: 0; text-align: center; }
+th.ck label, td.ck label { display: grid; place-items: center; min-width: 40px; min-height: 40px; cursor: pointer; }
+th.ck input, td.ck input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; margin: 0; }
 tbody tr.sel { background: var(--accent-soft); }
 tbody tr.sel:hover { background: #dcebe3; }
 .selbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; margin-bottom: 10px;
@@ -140,7 +144,17 @@ dialog::backdrop { background: rgba(10, 30, 22, .45); }
 .toast.show { opacity: 1; transform: translateX(-50%); }
 
 @media (max-width: 560px) {
+  .wrap { padding: 16px 16px 48px; }
   .hbar { grid-template-columns: minmax(80px, 42%) 1fr 30px; }
-  .axis { padding-left: calc(42% + 10px); padding-right: 40px; }
+  .hbar .name { white-space: normal; line-height: 1.3; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .lang-kpi { grid-column: 1 / -1; }
+  .lang-kpi .langs { display: flex; flex-wrap: wrap; gap: 4px 16px; }
   .kpi .value { font-size: 22px; }
+  .status { align-items: flex-start; }
+  .status-actions { width: 100%; justify-content: space-between; }
+  .filters { width: 100%; }
+  .filters select, .filters input { flex: 1 1 140px; min-height: 40px; }
+  .btn.sm { padding: 7px 11px; }
+  .charts { grid-template-columns: 1fr; }
 }
