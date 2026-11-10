@@ -108,13 +108,25 @@ export const UI = {
 
 const o = (v, en, si, ta, extra = {}) => ({ v, label: { en, si, ta }, ...extra });
 
+// Options for B4 (first part of the trip) and B5 (last part). The final "none" option
+// is saved as "na" (also used automatically for walkers/cyclists, who skip both questions).
 const ACCESS = [
   o("walk", "Walk", "පයින්", "நடந்து"),
   o("bus", "Bus", "බස්", "பேருந்து"),
-  o("bicycle", "Bicycle", "බයිසිකලය", "சைக்கிள்"),
   o("three_wheeler", "Three-wheeler", "ත්‍රීරෝද රථය", "முச்சக்கர வண்டி"),
   o("dropped", "Dropped by someone", "කෙනෙකු ඇරලවයි", "யாராவது இறக்கிவிடுவார்கள்"),
-  o("na", "Not applicable", "අදාළ නොවේ", "பொருந்தாது"),
+];
+const FIRST_LEG = [
+  ...ACCESS,
+  o("na", "None / Direct access (I step straight onto my main transport from home)",
+    "කිසිවක් නැත / කෙලින්ම ප්‍රවේශය (මම නිවසේ සිට කෙලින්ම ප්‍රධාන වාහනයට නගිමි)",
+    "எதுவுமில்லை / நேரடி அணுகல் (நான் வீட்டிலிருந்து நேரடியாக முக்கிய வாகனத்தில் ஏறுவேன்)"),
+];
+const LAST_LEG = [
+  ...ACCESS,
+  o("na", "None / Direct drop-off (My main transport drops me right at the university gate)",
+    "කිසිවක් නැත / කෙලින්ම බස්සවීම (මගේ ප්‍රධාන වාහනය මා විශ්වවිද්‍යාල දොරටුවේම බස්සවයි)",
+    "எதுவுமில்லை / நேரடியாக இறக்கிவிடுதல் (எனது முக்கிய வாகனம் என்னை பல்கலைக்கழக வாயிலிலேயே இறக்கிவிடும்)"),
 ];
 
 const FEEL_PRE = {
@@ -292,7 +304,7 @@ export const QUESTIONS = [
       ta: "நீங்கள் தங்கும் இடத்திலிருந்து முக்கிய வாகனத்தை எவ்வாறு அடைகிறீர்கள்?",
     },
     help: { en: "First part of the trip.", si: "ගමනේ මුල් කොටස.", ta: "பயணத்தின் முதல் பகுதி." },
-    options: ACCESS,
+    options: FIRST_LEG,
   },
   {
     id: "B5", section: "B", type: "single",
@@ -304,7 +316,7 @@ export const QUESTIONS = [
       ta: "முக்கிய வாகனத்திலிருந்து இறங்கி பல்கலைக்கழக வாயிலை எவ்வாறு அடைகிறீர்கள்?",
     },
     help: { en: "Last part of the trip.", si: "ගමනේ අවසාන කොටස.", ta: "பயணத்தின் இறுதிப் பகுதி." },
-    options: ACCESS,
+    options: LAST_LEG,
   },
   {
     id: "B6", section: "B", type: "single",

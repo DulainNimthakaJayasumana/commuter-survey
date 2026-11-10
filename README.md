@@ -43,7 +43,7 @@ npx serve .
 | B1 (one-way) | 1 = <5 km, 2 = 5–14, 3 = 15–29, 4 = 30–49, 5 = 50+ |
 | B2 | `bus`, `train`, `three_wheeler`, `private`, `walk_bicycle` |
 | B3 | 0, 1, 2, 3 (=3 or more). Walkers/cyclists (B2 = `walk_bicycle`) are not asked B3–B6; they are saved as B3 = 0, B4 = B5 = B6 = `na` |
-| B4, B5 | `walk`, `bus`, `bicycle`, `three_wheeler`, `dropped`, `na` |
+| B4, B5 | `walk`, `bus`, `three_wheeler`, `dropped`, `na` (= none: direct access / direct drop-off; also saved for walkers/cyclists who skip B4–B6) |
 | B6 | `seat`, `stand`, `na` |
 | B7 (days per week arriving 15+ min late) | 0 = 0 days (never), 1 = 1 day, 2 = 2–3 days, 3 = 4+ days |
 | B8 | one-way travel time: 1 = <30 min, 2 = 30–59, 3 = 1–1½ h, 4 = 1½–2 h, 5 = >2 h |
