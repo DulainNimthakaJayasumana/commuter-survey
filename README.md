@@ -45,7 +45,7 @@ npx serve .
 | B3 | 0, 1, 2, 3 (=3 or more) |
 | B4, B5 | `walk`, `bus`, `bicycle`, `three_wheeler`, `dropped`, `na` |
 | B6 | `seat`, `stand`, `na` |
-| B7 | 1 Never … 5 Always |
+| B7 (days per week arriving 15+ min late) | 0 = 0 days (never), 1 = 1 day, 2 = 2–3 days, 3 = 4+ days |
 | C1–C3 | −3 (stressed / worried / hurried) … +3 (relaxed / confident / calm) |
 | C4 | 1 Not at all … 5 Very much |
 | D1 | 1 Very poor … 5 Very good (sleep) |

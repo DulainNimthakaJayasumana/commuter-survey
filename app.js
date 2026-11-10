@@ -277,7 +277,7 @@ function buildRecord(status) {
   const rec = {
     status,
     lang: state.lang,
-    version: 2,
+    version: 3,
     startedAt: state.startedAt,
     durationSec: state.startedAt ? Math.round((Date.now() - Date.parse(state.startedAt)) / 1000) : null,
   };
