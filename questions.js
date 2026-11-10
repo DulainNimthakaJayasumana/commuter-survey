@@ -406,19 +406,19 @@ export const QUESTIONS = [
   },
   {
     id: "B11", section: "B", type: "single",
-    // Walkers/cyclists don't pay for transport: skipped and saved as 0.
+    // Walkers/cyclists spend nothing on travel: skipped and saved as 0.
     auto: (a) => (a.B2 === "walk_bicycle" ? 0 : undefined),
     q: {
-      en: "How difficult is it for you to pay for your daily transport?",
-      si: "ඔබේ දෛනික ප්‍රවාහන වියදම දැරීම ඔබට කොතරම් අපහසුද?",
-      ta: "உங்கள் தினசரி போக்குவரத்துச் செலவைச் செலுத்துவது உங்களுக்கு எவ்வளவு கடினம்?",
+      en: "Roughly what portion of your daily budget/allowance goes toward travel expenses?",
+      si: "ඔබේ දෛනික අයවැයෙන්/දීමනාවෙන් දළ වශයෙන් කොපමණ කොටසක් ගමන් වියදම් සඳහා වැය වේද?",
+      ta: "உங்கள் தினசரி பட்ஜெட்/கொடுப்பனவில் தோராயமாக எவ்வளவு பங்கு பயணச் செலவுகளுக்குச் செல்கிறது?",
     },
     options: [
-      o(0, "I don't pay for transport", "මම ප්‍රවාහන වියදමක් දරන්නේ නැහැ", "நான் போக்குவரத்துக்குச் செலவு செய்வதில்லை"),
-      o(1, "Not difficult at all", "කිසිසේත් අපහසු නැත", "கடினமே இல்லை"),
-      o(2, "Slightly difficult", "ටිකක් අපහසුයි", "சற்றுக் கடினம்"),
-      o(3, "Quite difficult", "තරමක් අපහසුයි", "ஓரளவு கடினம்"),
-      o(4, "Very difficult", "ඉතා අපහසුයි", "மிகவும் கடினம்"),
+      o(0, "Nothing (0% — Free / Walk)", "කිසිවක් නැත (0% — නොමිලේ / පයින්)", "எதுவுமில்லை (0% — இலவசம் / நடை)"),
+      o(1, "Less than 10%", "10%ට අඩු", "10%க்குக் குறைவு"),
+      o(2, "10% to 25%", "10% සිට 25% දක්වා", "10% முதல் 25% வரை"),
+      o(3, "26% to 50%", "26% සිට 50% දක්වා", "26% முதல் 50% வரை"),
+      o(4, "More than 50%", "50%ට වැඩි", "50%க்கு மேல்"),
     ],
   },
   {
