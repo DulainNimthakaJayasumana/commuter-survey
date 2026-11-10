@@ -532,17 +532,19 @@ export const QUESTIONS = [
   },
   {
     id: "D3", section: "D", type: "single",
+    // Only bus and train riders are asked; for everyone else nothing is saved (left blank).
+    skip: (a) => a.B2 !== "bus" && a.B2 !== "train",
     q: {
-      en: "How crowded was your journey today?",
-      si: "අද ඔබේ ගමන කොතරම් සෙනඟ පිරී තිබුණාද?",
-      ta: "இன்று உங்கள் பயணம் எவ்வளவு நெரிசலாக இருந்தது?",
+      en: "How crowded was your bus or train today?",
+      si: "අද ඔබේ බස් රථය හෝ දුම්රිය කොතරම් සෙනඟ පිරී තිබුණාද?",
+      ta: "இன்று நீங்கள் பயணித்த பேருந்து அல்லது ரயில் எவ்வளவு நெரிசலாக இருந்தது?",
     },
     options: [
-      o(1, "Not crowded, plenty of space", "සෙනඟ නැත, ඉඩ ප්‍රමාණවත්", "நெரிசல் இல்லை, போதுமான இடம் இருந்தது"),
-      o(2, "Slightly crowded", "ටිකක් සෙනඟ ඇත", "சற்று நெரிசல்"),
-      o(3, "Moderately crowded", "මධ්‍යස්ථ සෙනඟක්", "மிதமான நெரிசல்"),
-      o(4, "Very crowded", "ඉතා සෙනඟ පිරී ඇත", "மிகவும் நெரிசல்"),
-      o(5, "Extremely crowded, hard to move", "අතිශය සෙනඟ පිරී, සැරිසැරීමට අපහසුයි", "மிக அதிக நெரிசல், நகரவே முடியாது"),
+      o(1, "Not crowded (plenty of empty seats and space)", "සෙනඟ නැත (හිස් ආසන සහ ඉඩ ප්‍රමාණවත්)", "நெரிசல் இல்லை (நிறைய காலி இருக்கைகளும் இடமும் உள்ளன)"),
+      o(2, "Slightly crowded (few empty seats left)", "ටිකක් සෙනඟ ඇත (හිස් ආසන කිහිපයක් ඉතිරිව ඇත)", "சற்று நெரிசல் (சில காலி இருக்கைகள் மட்டும் உள்ளன)"),
+      o(3, "Moderately crowded (all seats taken, few people standing)", "මධ්‍යස්ථ සෙනඟක් (සියලු ආසන පිරී ඇත, කිහිප දෙනෙක් සිටගෙන සිටී)", "மிதமான நெரிசல் (எல்லா இருக்கைகளும் நிரம்பியுள்ளன, சிலர் நின்றுகொண்டிருக்கிறார்கள்)"),
+      o(4, "Very crowded (many people standing, standing close together)", "ඉතා සෙනඟ පිරී ඇත (බොහෝ දෙනෙක් සිටගෙන, ළං ළංව සිටී)", "மிகவும் நெரிசல் (பலர் நின்றுகொண்டு, நெருக்கமாக நிற்கிறார்கள்)"),
+      o(5, "Extremely crowded (overpacked, hard to move/breathe)", "අතිශය සෙනඟ පිරී ඇත (අධික ලෙස පිරී, සැරිසැරීමට/හුස්ම ගැනීමට අපහසුයි)", "மிக அதிக நெரிசல் (அளவுக்கு மீறி நிரம்பியுள்ளது, நகர/மூச்சுவிட கடினம்)"),
     ],
   },
   {

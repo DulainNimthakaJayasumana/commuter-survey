@@ -51,7 +51,7 @@ npx serve .
 | B10 | leaves home: 1 = before 6:00, 2 = 6:00–6:59, 3 = 7:00–7:59, 4 = 8:00 or later |
 | B11 | difficulty paying for transport: 0 = doesn't pay, 1 = not difficult … 4 = very difficult (walkers/cyclists skipped → 0) |
 | B12 | feels unsafe on the journey: 1 Never … 4 Often |
-| D3 | crowding today: 1 = not crowded … 5 = extremely crowded |
+| D3 | crowding of the bus/train today: 1 = not crowded … 5 = extremely crowded. Only asked when B2 is bus or train; blank for everyone else |
 | D4 | weather / discomfort made it harder: 1 Not at all … 4 Very much |
 | C1–C3 | −3 (stressed / worried / hurried) … +3 (relaxed / confident / calm) |
 | C4 | 1 Not at all … 5 Very much |

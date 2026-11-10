@@ -275,7 +275,7 @@ function renderApp() {
       <div class="card"><h3>Seat during journey <small>B6</small></h3>${hbars(count(complete, "B6"))}</div>
       <div class="card"><h3>Travel time, one way <small>B8</small></h3>${hbars(count(complete, "B8"))}</div>
       <div class="card"><h3>Waiting time <small>B9</small></h3>${hbars(count(complete, "B9"))}</div>
-      <div class="card"><h3>Crowding today <small>D3</small></h3>${hbars(count(complete, "D3"))}</div>
+      <div class="card"><h3>Bus / train crowding today <small>D3</small></h3>${hbars(count(complete, "D3"))}</div>
       <div class="card"><h3>Weather / discomfort today <small>D4</small></h3>${hbars(count(complete, "D4"))}</div>
       <div class="card"><h3>Feeling unsafe <small>B12</small></h3>${hbars(count(complete, "B12"))}</div>
     </div>

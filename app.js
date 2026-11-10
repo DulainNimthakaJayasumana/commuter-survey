@@ -19,8 +19,10 @@ const STORE_KEY = "usj-commuter-survey-v1";
 // Skip logic: a question with an `auto` rule is not shown when the rule returns a value;
 // that value is saved for it instead (e.g. walkers never see the seat / vehicle-change questions).
 const autoValue = (q) => (q.auto ? q.auto(state.answers) : undefined);
-const isSkipped = (id) => !!QMAP[id] && autoValue(QMAP[id]) !== undefined;
-const activeQs = () => QUESTIONS.filter((q) => autoValue(q) === undefined);
+// A question is hidden if it has an auto value (saved) or a `skip` rule that matches (nothing saved).
+const isHidden = (q) => autoValue(q) !== undefined || !!q.skip?.(state.answers);
+const isSkipped = (id) => !!QMAP[id] && isHidden(QMAP[id]);
+const activeQs = () => QUESTIONS.filter((q) => !isHidden(q));
 const isLastActive = (q) => activeQs().at(-1)?.id === q.id;
 
 if (new URLSearchParams(location.search).has("new")) {
@@ -290,12 +292,13 @@ function buildRecord(status) {
   const rec = {
     status,
     lang: state.lang,
-    version: 5,
+    version: 6,
     startedAt: state.startedAt,
     durationSec: state.startedAt ? Math.round((Date.now() - Date.parse(state.startedAt)) / 1000) : null,
   };
   for (const q of QUESTIONS) {
-    const v = autoValue(q) ?? state.answers[q.id]; // skipped questions get their rule's value
+    if (q.skip?.(state.answers)) continue;          // not asked: leave blank (drop any earlier answer)
+    const v = autoValue(q) ?? state.answers[q.id];  // walkers' questions get their rule's value
     if (v !== undefined) rec[q.id] = v;
   }
   for (const q of QUESTIONS) {
