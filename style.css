@@ -232,13 +232,12 @@ h2.q { font-size: clamp(20px, 3.6vw, 25px); line-height: 1.38; margin: 0 0 8px; 
 .rip::after { animation: ripple .6s ease-out; }
 @keyframes ripple { from { opacity: .22; transform: translate(-50%, -50%) scale(0); } to { opacity: 0; transform: translate(-50%, -50%) scale(48); } }
 
-/* Section bars + counter */
+/* Section bars */
 .steps { display: flex; gap: 6px; margin-bottom: 14px; }
 .steps span { flex: 1; height: 4px; border-radius: 99px; background: rgba(35, 102, 76, .12); overflow: hidden; }
 .steps span.cur { background: rgba(35, 102, 76, .22); }
 .steps i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transform-origin: left; animation: stepGrow .6s .15s cubic-bezier(.4, 0, .2, 1) backwards; }
 @keyframes stepGrow { from { transform: scaleX(0); } }
-.eyebrow .count { margin-left: auto; color: var(--ink-mute); font-weight: 500; font-variant-numeric: tabular-nums; }
 
 /* Gentle validation feedback */
 .shake { animation: shake .45s; }

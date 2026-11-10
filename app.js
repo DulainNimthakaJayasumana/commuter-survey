@@ -192,7 +192,6 @@ function renderQuestion(q, _idx, anim) {
   const u = t();
   const ans = state.answers[q.id];
   const active = activeQs();
-  const idx = active.findIndex((x) => x.id === q.id);
   const isLast = isLastActive(q);
   // One thin bar per section: finished sections are full, the current one fills as you go.
   const secs = [...new Set(active.map((x) => x.section))];
@@ -204,7 +203,7 @@ function renderQuestion(q, _idx, anim) {
   }).join("");
   const head = `
     <div class="steps" aria-hidden="true">${steps}</div>
-    <div class="eyebrow"><span class="qnum">${q.id}</span><span class="dot"></span><span>${u.sections[q.section]}</span><span class="count">${idx + 1} / ${active.length}</span></div>
+    <div class="eyebrow" data-q="${q.id}"><span>${u.sections[q.section]}</span></div>
     ${q.pre ? `<p class="pre">${esc(L(q.pre))}</p>` : ""}
     <h2 class="q">${esc(L(q.q))}</h2>
     ${q.help ? `<p class="help">${esc(L(q.help))}</p>` : ""}
