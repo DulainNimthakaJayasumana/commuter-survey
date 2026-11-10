@@ -35,8 +35,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'status', 'lang', 'version', 'startedAt', 'durationSec', 'submittedAt',
           'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A6_other',
-          'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7',
-          'C1', 'C2', 'C3', 'C4', 'D1', 'D2'
+          'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B12',
+          'C1', 'C2', 'C3', 'C4', 'D1', 'D2', 'D3', 'D4'
         ])
         && request.resource.data.status in ['complete', 'declined', 'ineligible']
         && request.resource.data.lang in ['en', 'si', 'ta']

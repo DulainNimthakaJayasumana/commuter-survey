@@ -101,7 +101,7 @@ function renderIntro(anim) {
     </div>
     <p class="blurb" lang="${introLang}">${BLURB[introLang]}</p>
     <div class="chips">
-      <span class="chip">⏱ ~2 min</span>
+      <span class="chip">⏱ ~3 min</span>
       <span class="chip">🔒 Anonymous · නිර්නාමික · அநாமதேய</span>
       <span class="chip">🙋 Voluntary · ස්වේච්ඡා · விருப்பத்தின் பேரில்</span>
     </div>
@@ -290,7 +290,7 @@ function buildRecord(status) {
   const rec = {
     status,
     lang: state.lang,
-    version: 3,
+    version: 4,
     startedAt: state.startedAt,
     durationSec: state.startedAt ? Math.round((Date.now() - Date.parse(state.startedAt)) / 1000) : null,
   };
