@@ -35,6 +35,7 @@ export const UI = {
     ineligibleTitle: "Thank you for your interest!",
     ineligibleSub: "This survey is for students who travel to the university at least 3 days a week.",
     error: "Couldn't submit. Please check your internet connection and try again.",
+    errorSaved: "Sorry — your answers couldn't be saved right now. Please tell the research team (error: {code}).",
     sections: {
       A: "About you",
       B: "Your journey to the university",
@@ -69,6 +70,7 @@ export const UI = {
     ineligibleTitle: "ඔබේ උනන්දුවට ස්තූතියි!",
     ineligibleSub: "මෙම සමීක්ෂණය සතියකට අවම වශයෙන් දින 3ක් විශ්වවිද්‍යාලයට පැමිණෙන සිසුන් සඳහා වේ.",
     error: "යොමු කිරීමට නොහැකි විය. කරුණාකර අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+    errorSaved: "සමාවන්න — ඔබේ පිළිතුරු දැන් සුරැකීමට නොහැකි විය. කරුණාකර පර්යේෂණ කණ්ඩායමට දන්වන්න (දෝෂය: {code}).",
     sections: {
       A: "ඔබ ගැන",
       B: "විශ්වවිද්‍යාලයට ඔබේ ගමන",
@@ -103,6 +105,7 @@ export const UI = {
     ineligibleTitle: "உங்கள் ஆர்வத்திற்கு நன்றி!",
     ineligibleSub: "இந்த ஆய்வு வாரத்தில் குறைந்தது 3 நாட்கள் பல்கலைக்கழகத்திற்குப் பயணம் செய்யும் மாணவர்களுக்கானது.",
     error: "சமர்ப்பிக்க முடியவில்லை. இணைய இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+    errorSaved: "மன்னிக்கவும் — உங்கள் பதில்களை இப்போது சேமிக்க முடியவில்லை. ஆய்வுக் குழுவிற்குத் தெரிவிக்கவும் (பிழை: {code}).",
     sections: {
       A: "உங்களைப் பற்றி",
       B: "பல்கலைக்கழகத்திற்கான உங்கள் பயணம்",

@@ -408,7 +408,9 @@ async function submit() {
     render();
   } catch (e) {
     console.error(e);
-    showErr(t().error);
+    // Only blame the connection when it really is the connection; otherwise show the real reason.
+    const offline = !navigator.onLine || e?.code === "unavailable" || e?.code === "deadline-exceeded";
+    showErr(offline ? t().error : t().errorSaved.replace("{code}", e?.code || e?.message || "unknown"));
     if (btn) { btn.disabled = false; btn.innerHTML = `${t().submit} <span aria-hidden="true">✓</span>`; }
   } finally {
     busy = false;
