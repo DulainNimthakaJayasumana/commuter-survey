@@ -39,6 +39,7 @@ function label(id, v) {
   if (v === undefined || v === null || v === "") return "";
   const q = Q[id];
   if (!q) return String(v);
+  if (q.type === "text") return String(v);
   if (q.type === "scale7") return `${v > 0 ? "+" : ""}${v} ${q.points[v + 3]?.en ?? ""}`.trim();
   const o = q.options.find((o) => o.v === v);
   return o ? o.label.en : String(v);
@@ -101,18 +102,22 @@ async function saveRow(id, changes, removed) {
   await fs.updateDoc(fs.doc(db, COLLECTION, id), upd);
 }
 
+// Deleting a response also frees its index number, so that student (or a test) can submit again.
 async function deleteRows(ids) {
   const { db, fs } = fb;
-  for (let i = 0; i < ids.length; i += 400) {
+  for (let i = 0; i < ids.length; i += 200) {
     const batch = fs.writeBatch(db);
-    ids.slice(i, i + 400).forEach((id) => batch.delete(fs.doc(db, COLLECTION, id)));
+    ids.slice(i, i + 200).forEach((id) => {
+      batch.delete(fs.doc(db, COLLECTION, id));
+      const idx = rows.find((r) => r.id === id)?.index;
+      if (idx) batch.delete(fs.doc(db, "indexes", idx));
+    });
     await batch.commit();
   }
 }
 
 async function deleteRow(id) {
-  const { db, fs } = fb;
-  await fs.deleteDoc(fs.doc(db, COLLECTION, id));
+  await deleteRows([id]);
 }
 
 // ─────────────────────────────────────────────── views
@@ -424,7 +429,8 @@ function openEdit(id) {
           ${sel("status", [["complete", "complete"], ["declined", "declined"], ["ineligible", "ineligible"]], r.status).replace('<option value="">— blank —</option>', "")}</div>
         <div class="field"><label><b>Language</b></label>
           ${sel("lang", [["si", "Sinhala"], ["en", "English"], ["ta", "Tamil"]], r.lang).replace('<option value="">— blank —</option>', "")}</div>
-        ${QUESTIONS.map((q) => `
+        ${QUESTIONS.map((q) => q.type === "text" ? `
+          <div class="field"><label><b>Index number</b> · can't be edited (it blocks duplicates)</label><input value="${esc(r[q.id] || "—")}" disabled></div>` : `
           <div class="field"><label><b>${q.id}</b> · ${esc(q.q.en)}</label>${sel(q.id, optsFor(q), r[q.id])}</div>
           ${q.id === "A6" ? `<div class="field"><label><b>A6 other</b> · text</label><input name="A6_other" maxlength="120" value="${esc(r.A6_other || "")}"></div>` : ""}`).join("")}
       </div>
@@ -483,6 +489,10 @@ async function exportExcel(only) {
     });
     const codebook = [];
     QUESTIONS.forEach((q) => {
+      if (q.type === "text") {
+        codebook.push({ Variable: q.id, Question: q.q.en, Code: "text", Meaning: "Index number, capitals with spaces/symbols removed (used only to block duplicates)" });
+        return;
+      }
       const opts = q.type === "scale7"
         ? [-3, -2, -1, 0, 1, 2, 3].map((v) => ({ v, l: q.points[v + 3].en }))
         : q.options.map((o) => ({ v: o.v, l: o.label.en }));

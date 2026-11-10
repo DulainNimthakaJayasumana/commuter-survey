@@ -33,7 +33,7 @@ service cloud.firestore {
       // Anyone can ADD a response while the survey is open.
       allow create: if surveyOpen()
         && request.resource.data.keys().hasOnly([
-          'status', 'lang', 'version', 'startedAt', 'durationSec', 'submittedAt',
+          'status', 'lang', 'version', 'startedAt', 'durationSec', 'submittedAt', 'index',
           'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A6_other',
           'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B12',
           'C1', 'C2', 'C3', 'C4', 'D1', 'D2', 'D3', 'D4'
@@ -42,10 +42,26 @@ service cloud.firestore {
         && request.resource.data.lang in ['en', 'si', 'ta']
         && request.resource.data.submittedAt == request.time
         && (!('A6_other' in request.resource.data)
-            || (request.resource.data.A6_other is string && request.resource.data.A6_other.size() <= 120));
+            || (request.resource.data.A6_other is string && request.resource.data.A6_other.size() <= 120))
+        // Completed responses must carry an index number that has never been used, and must claim it
+        // (create indexes/<INDEX>) in the same batch. That is what blocks duplicate responses.
+        && (request.resource.data.status != 'complete'
+            || (request.resource.data.index is string
+                && request.resource.data.index.matches('^[A-Z0-9]{5,15}$')
+                && !exists(/databases/$(database)/documents/indexes/$(request.resource.data.index))
+                && existsAfter(/databases/$(database)/documents/indexes/$(request.resource.data.index))));
 
       // Only admins can see, edit or delete responses.
       allow read, update, delete: if isAdmin();
+    }
+
+    // ── Used index numbers (one document per student; blocks duplicates) ──
+    match /indexes/{idx} {
+      allow create: if idx.matches('^[A-Z0-9]{5,15}$')
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
+      // Never updated, so a second submission with the same index number fails.
+      allow read, delete: if isAdmin();
     }
 
     // ── Survey settings (open / closed) ─────────────────────────────────

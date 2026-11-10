@@ -1,4 +1,4 @@
-import { LANGS, UI, QUESTIONS } from "./questions.js";
+import { LANGS, UI, QUESTIONS, normIndex, validIndex } from "./questions.js";
 import { saveResponse, preload, isSurveyOpen } from "./db.js";
 
 if ("scrollRestoration" in history) history.scrollRestoration = "manual"; // always open a page at the top
@@ -121,7 +121,7 @@ function render(dir = "fwd") {
   // Focus the card (not an option) so Enter means "continue", never "pick the first answer".
   const card = $app.querySelector(".card");
   if (card) { card.tabIndex = -1; card.style.outline = "none"; card.focus({ preventScroll: true }); }
-  const other = document.getElementById("otherInput");
+  const other = document.getElementById("otherInput") || document.getElementById("textInput");
   if (other) { other.focus({ preventScroll: true }); other.setSelectionRange(other.value.length, other.value.length); }
   window.scrollTo({ top: 0 });
 }
@@ -148,7 +148,7 @@ function renderIntro(anim) {
     <p class="blurb" lang="${introLang}">${BLURB[introLang]}</p>
     <div class="chips">
       <span class="chip">⏱ ~3 min</span>
-      <span class="chip">🔒 Anonymous · නිර්නාමික · அநாமதேய</span>
+      <span class="chip">🔒 Confidential · රහසිගත · இரகசியமானது</span>
       <span class="chip">🙋 Voluntary · ස්වේච්ඡා · விருப்பத்தின் பேரில்</span>
     </div>
     <div class="actions">
@@ -222,6 +222,10 @@ function renderQuestion(q, _idx, anim) {
     ${q.options.some((o) => o.other && o.v === ans) ? `
       <input class="other-input" id="otherInput" type="text" maxlength="120" autocomplete="off"
         placeholder="${esc(u.otherPlaceholder)}" value="${esc(state.answers[q.id + "_other"] || "")}">` : ""}`;
+  } else if (q.type === "text") {
+    body = `<input class="other-input text-q" id="textInput" type="text" maxlength="20" autocomplete="off"
+      autocapitalize="characters" spellcheck="false" inputmode="text"
+      placeholder="${esc(q.placeholder || "")}" value="${esc(ans || "")}" aria-label="${esc(L(q.q))}">`;
   } else if (q.type === "scale7") {
     body = `<div class="scale-wrap">
       <div class="scale" role="radiogroup">
@@ -304,7 +308,7 @@ function showErr(msg) {
   if (el) el.textContent = msg;
   if (!msg || reduceMotion()) return;
   // Shake whatever needs attention so the message is impossible to miss.
-  const target = $app.querySelector(msg === t().otherRequired ? ".other-input" : ".options, .scale");
+  const target = $app.querySelector(msg === t().otherRequired || msg === t().indexInvalid ? ".other-input" : ".options, .scale");
   if (target) {
     target.classList.remove("shake"); void target.offsetWidth; target.classList.add("shake");
     target.addEventListener("animationend", () => target.classList.remove("shake"), { once: true });
@@ -315,6 +319,7 @@ function showErr(msg) {
 // Returns an error message if the question isn't answered yet.
 function missingMsg(q) {
   const v = state.answers[q.id];
+  if (q.type === "text") return validIndex(v) ? null : t().indexInvalid;
   if (v === undefined) return t().required;
   if (q.options?.some((o) => o.other && o.v === v) && !(state.answers[q.id + "_other"] || "").trim()) return t().otherRequired;
   return null;
@@ -366,14 +371,14 @@ function buildRecord(status) {
   const rec = {
     status,
     lang: state.lang,
-    version: 8,
+    version: 9,
     startedAt: state.startedAt,
     durationSec: state.startedAt ? Math.round((Date.now() - Date.parse(state.startedAt)) / 1000) : null,
   };
   for (const q of QUESTIONS) {
     if (q.skip?.(state.answers)) continue;          // not asked: leave blank (drop any earlier answer)
     const v = autoValue(q) ?? state.answers[q.id];  // walkers' questions get their rule's value
-    if (v !== undefined) rec[q.id] = v;
+    if (v !== undefined) rec[q.id] = q.type === "text" ? normIndex(v) : v;
   }
   for (const q of QUESTIONS) {
     if (q.options?.some((o) => o.other && o.v === rec[q.id])) rec[q.id + "_other"] = (state.answers[q.id + "_other"] || "").trim().slice(0, 120);
@@ -404,13 +409,17 @@ async function submit() {
     await saveResponse(buildRecord("complete"));
     celebrate = true;
     state.finished = "done";
+    state.answers = {};   // don't leave the index number and answers on a shared device
     persist();
     render();
   } catch (e) {
     console.error(e);
     // Only blame the connection when it really is the connection; otherwise show the real reason.
     const offline = !navigator.onLine || e?.code === "unavailable" || e?.code === "deadline-exceeded";
-    showErr(offline ? t().error : t().errorSaved.replace("{code}", e?.code || e?.message || "unknown"));
+    // With the survey open and all answers valid, a refusal almost always means the index number was already used.
+    showErr(offline ? t().error
+      : e?.code === "permission-denied" ? t().indexDuplicate
+      : t().errorSaved.replace("{code}", e?.code || e?.message || "unknown"));
     if (btn) { btn.disabled = false; btn.innerHTML = `${t().submit} <span aria-hidden="true">✓</span>`; }
   } finally {
     busy = false;
@@ -452,15 +461,16 @@ $app.addEventListener("click", (e) => {
 });
 
 $app.addEventListener("input", (e) => {
-  if (e.target.id !== "otherInput") return;
-  state.answers[PAGES[state.page] + "_other"] = e.target.value;
+  if (e.target.id !== "otherInput" && e.target.id !== "textInput") return;
+  if (e.target.id === "textInput") state.answers[PAGES[state.page]] = e.target.value;
+  else state.answers[PAGES[state.page] + "_other"] = e.target.value;
   persist();
   showErr("");
 });
 
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || state.finished || closed) return;
-  if (e.target.id === "otherInput") {
+  if (e.target.id === "otherInput" || e.target.id === "textInput") {
     if (e.key === "Enter") { e.preventDefault(); tryNext(); }
     return;
   }

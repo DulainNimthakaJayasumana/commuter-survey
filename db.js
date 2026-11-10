@@ -34,9 +34,12 @@ export async function isSurveyOpen() {
 
 export async function saveResponse(record) {
   const { db, fs } = await getDb();
-  const ref = await fs.addDoc(fs.collection(db, COLLECTION), {
-    ...record,
-    submittedAt: fs.serverTimestamp(),
-  });
+  // One batch: the response + an `indexes/<INDEX>` marker. Firebase rejects the whole batch if that
+  // index number has been used before, so each student can submit only once.
+  const batch = fs.writeBatch(db);
+  const ref = fs.doc(fs.collection(db, COLLECTION));
+  batch.set(ref, { ...record, submittedAt: fs.serverTimestamp() });
+  if (record.index) batch.set(fs.doc(db, "indexes", record.index), { at: fs.serverTimestamp() });
+  await batch.commit();
   return ref.id;
 }

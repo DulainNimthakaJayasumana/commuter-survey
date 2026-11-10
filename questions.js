@@ -1,6 +1,10 @@
 // All survey text in English (en), Sinhala (si) and Tamil (ta).
 // Option `v` is the value saved to Firestore. Ordinal items use numbers so they are ready for analysis.
 
+// Index numbers are stored in one consistent form: capitals, letters and digits only.
+export const normIndex = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+export const validIndex = (v) => /^(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]{5,15}$/.test(normIndex(v));
+
 export const LANGS = [
   { code: "si", label: "සිංහල", sub: "Sinhala" },
   { code: "en", label: "English", sub: "English" },
@@ -13,7 +17,7 @@ export const UI = {
     brief: [
       "Please fill this in <b>after you arrive at the university today</b>.",
       "Choose <b>one</b> answer for each question.",
-      "Your name and index number are <b>not</b> asked. Answers are anonymous and used only for this project.",
+      "We ask for your index number <b>only to avoid duplicate responses</b>. Your name is not asked. Answers are kept <b>confidential</b> and used only for this project.",
       "Takes about 3 minutes. Taking part is voluntary.",
     ],
     start: "Start",
@@ -26,6 +30,8 @@ export const UI = {
     otherPlaceholder: "Type your answer…",
     otherRequired: "Please specify",
     changeLang: "Language",
+    indexInvalid: "Please enter your index number (e.g. AS2023651).",
+    indexDuplicate: "This index number has already been used to submit a response. Each student can answer only once. If you haven't answered before, check the number or contact the research team.",
     halfway: "Halfway there! 🎉",
     almost: "Almost done — just a few more!",
     doneTitle: "Thank you for your time!",
@@ -48,7 +54,7 @@ export const UI = {
     brief: [
       "කරුණාකර <b>අද දින විශ්වවිද්‍යාලයට පැමිණි පසු</b> මෙම ප්‍රශ්නාවලිය පුරවන්න.",
       "සෑම ප්‍රශ්නයකටම <b>එක්</b> පිළිතුරක් පමණක් තෝරන්න.",
-      "ඔබේ නම හෝ ලියාපදිංචි අංකය <b>අසනු නොලැබේ</b>. ඔබේ පිළිතුරු රහසිගතව තබා මෙම ව්‍යාපෘතිය සඳහා පමණක් භාවිත කෙරේ.",
+      "ඔබේ ලියාපදිංචි අංකය අසන්නේ <b>එකම පිළිතුරු දෙවරක් ලැබීම වැළැක්වීමට පමණි</b>. ඔබේ නම අසනු නොලැබේ. ඔබේ පිළිතුරු <b>රහසිගතව</b> තබා මෙම ව්‍යාපෘතිය සඳහා පමණක් භාවිත කෙරේ.",
       "මිනිත්තු 3ක් පමණ ගත වේ. සහභාගී වීම ස්වේච්ඡාවෙනි.",
     ],
     start: "ආරම්භ කරන්න",
@@ -61,6 +67,8 @@ export const UI = {
     otherPlaceholder: "ඔබේ පිළිතුර ලියන්න…",
     otherRequired: "කරුණාකර සඳහන් කරන්න",
     changeLang: "භාෂාව",
+    indexInvalid: "කරුණාකර ඔබේ ලියාපදිංචි අංකය ඇතුළත් කරන්න (උදා: AS2023651).",
+    indexDuplicate: "මෙම ලියාපදිංචි අංකයෙන් දැනටමත් පිළිතුරු ලබා දී ඇත. සෑම සිසුවෙකුටම එක් වරක් පමණක් පිළිතුරු දිය හැක. ඔබ මීට පෙර පිළිතුරු දී නොමැති නම්, අංකය පරීක්ෂා කරන්න හෝ පර්යේෂණ කණ්ඩායම අමතන්න.",
     halfway: "අඩක් ඉවරයි! 🎉",
     almost: "පාහේ ඉවරයි — තව ටිකක් පමණයි!",
     doneTitle: "ඔබේ සහභාගීත්වයට ස්තූතියි!",
@@ -83,7 +91,7 @@ export const UI = {
     brief: [
       "<b>இன்று பல்கலைக்கழகத்தை வந்தடைந்த பிறகு</b> இந்த வினாக்கொத்தை நிரப்பவும்.",
       "ஒவ்வொரு கேள்விக்கும் <b>ஒரு</b> பதிலை மட்டும் தேர்ந்தெடுக்கவும்.",
-      "உங்கள் பெயரோ பதிவு இலக்கமோ <b>கேட்கப்படமாட்டாது</b>. உங்கள் பதில்கள் இரகசியமாக வைக்கப்பட்டு இந்த ஆய்வுக்கு மட்டுமே பயன்படுத்தப்படும்.",
+      "உங்கள் பதிவு இலக்கம் <b>ஒரே பதில் இருமுறை வருவதைத் தவிர்க்க மட்டுமே</b> கேட்கப்படுகிறது. உங்கள் பெயர் கேட்கப்படமாட்டாது. உங்கள் பதில்கள் <b>இரகசியமாக</b> வைக்கப்பட்டு இந்த ஆய்வுக்கு மட்டுமே பயன்படுத்தப்படும்.",
       "சுமார் 3 நிமிடங்கள் ஆகும். பங்கேற்பது உங்கள் விருப்பம்.",
     ],
     start: "தொடங்கு",
@@ -96,6 +104,8 @@ export const UI = {
     otherPlaceholder: "உங்கள் பதிலை எழுதவும்…",
     otherRequired: "தயவுசெய்து குறிப்பிடவும்",
     changeLang: "மொழி",
+    indexInvalid: "உங்கள் பதிவு இலக்கத்தை உள்ளிடவும் (உதா: AS2023651).",
+    indexDuplicate: "இந்தப் பதிவு இலக்கத்தில் ஏற்கனவே பதில் சமர்ப்பிக்கப்பட்டுள்ளது. ஒவ்வொரு மாணவரும் ஒருமுறை மட்டுமே பதிலளிக்கலாம். நீங்கள் முன்பு பதிலளிக்கவில்லை என்றால், இலக்கத்தைச் சரிபார்க்கவும் அல்லது ஆய்வுக் குழுவைத் தொடர்புகொள்ளவும்.",
     halfway: "பாதி முடிந்தது! 🎉",
     almost: "கிட்டத்தட்ட முடிந்தது — இன்னும் சில மட்டுமே!",
     doneTitle: "உங்கள் நேரத்திற்கு நன்றி!",
@@ -185,6 +195,21 @@ export const QUESTIONS = [
       o("3-4", "3–4 days", "දින 3–4", "3–4 நாட்கள்"),
       o("5+", "5 days or more", "දින 5 හෝ වැඩි", "5 நாட்கள் அல்லது அதற்கு மேல்"),
     ],
+  },
+  {
+    // Index number: required, only to stop the same student answering twice (see firestore.rules).
+    // Saved as `index`, normalised to capitals with spaces and symbols removed (AS/2023/651 → AS2023651).
+    id: "index", section: "A", type: "text", placeholder: "AS2023651",
+    q: {
+      en: "Your university index number",
+      si: "ඔබේ විශ්වවිද්‍යාල ලියාපදිංචි අංකය",
+      ta: "உங்கள் பல்கலைக்கழகப் பதிவு இலக்கம்",
+    },
+    help: {
+      en: "This is only used to avoid duplicate responses — each student can answer once. It is kept confidential and never shared.",
+      si: "මෙය භාවිත කරන්නේ එකම සිසුවා කිහිප වරක් පිළිතුරු දීම වැළැක්වීමට පමණි — සෑම සිසුවෙකුටම එක් වරක් පමණක් පිළිතුරු දිය හැක. එය රහසිගතව තබා කිසිවෙකු සමඟ බෙදා නොගනී.",
+      ta: "இது ஒரே மாணவர் பலமுறை பதிலளிப்பதைத் தவிர்க்க மட்டுமே பயன்படுத்தப்படுகிறது — ஒவ்வொரு மாணவரும் ஒருமுறை மட்டுமே பதிலளிக்கலாம். இது இரகசியமாக வைக்கப்படும், யாருடனும் பகிரப்படாது.",
+    },
   },
   {
     id: "A3", section: "A", type: "single",
