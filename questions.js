@@ -258,6 +258,8 @@ export const QUESTIONS = [
   },
   {
     id: "B3", section: "B", type: "single",
+    // Skipped (and saved as 0) when the main mode is walking/cycling.
+    auto: (a) => (a.B2 === "walk_bicycle" ? 0 : undefined),
     q: {
       en: "On your trip from HOME (or where you stay) to the CAMPUS, how many times do you change from one vehicle to another?",
       si: "නිවසේ (හෝ නවාතැනේ) සිට විශ්වවිද්‍යාලයට එන ගමනේදී ඔබ එක් වාහනයකින් තවත් වාහනයකට මාරු වන්නේ කී වතාවක්ද?",
@@ -282,6 +284,8 @@ export const QUESTIONS = [
   },
   {
     id: "B4", section: "B", type: "single",
+    // Skipped (and saved as "na") when the main mode is walking/cycling.
+    auto: (a) => (a.B2 === "walk_bicycle" ? "na" : undefined),
     q: {
       en: "How do you get from where you stay to your main vehicle?",
       si: "ඔබ නවාතැනේ සිට ප්‍රධාන වාහනය වෙත යන්නේ කෙසේද?",
@@ -292,6 +296,8 @@ export const QUESTIONS = [
   },
   {
     id: "B5", section: "B", type: "single",
+    // Skipped (and saved as "na") when the main mode is walking/cycling.
+    auto: (a) => (a.B2 === "walk_bicycle" ? "na" : undefined),
     q: {
       en: "How do you get from your main vehicle to the university gate?",
       si: "ප්‍රධාන වාහනයෙන් බැස විශ්වවිද්‍යාල දොරටුවට පැමිණෙන්නේ කෙසේද?",
@@ -302,6 +308,8 @@ export const QUESTIONS = [
   },
   {
     id: "B6", section: "B", type: "single",
+    // Skipped (and saved as "na") when the main mode is walking/cycling.
+    auto: (a) => (a.B2 === "walk_bicycle" ? "na" : undefined),
     q: {
       en: "During the journey, do you usually get a seat?",
       si: "ගමනේදී ඔබට සාමාන්‍යයෙන් ආසනයක් ලැබෙනවාද?",
@@ -342,7 +350,7 @@ export const QUESTIONS = [
     ),
   },
   {
-    id: "C2", section: "C", type: "scale7", pre: FEEL_PRE,
+    id: "C2", section: "C", type: "scale7",
     q: {
       en: "During the journey, did you feel worried or confident?",
       si: "ගමනේදී ඔබට කනස්සල්ලක් දැනුණාද, නැතහොත් විශ්වාසයක් දැනුණාද?",
@@ -354,7 +362,7 @@ export const QUESTIONS = [
     ),
   },
   {
-    id: "C3", section: "C", type: "scale7", pre: FEEL_PRE,
+    id: "C3", section: "C", type: "scale7",
     q: {
       en: "During the journey, did you feel hurried or calm?",
       si: "ගමනේදී ඔබට කලබලයක් දැනුණාද, නැතහොත් සන්සුන් බවක් දැනුණාද?",

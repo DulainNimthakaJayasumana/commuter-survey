@@ -42,7 +42,7 @@ npx serve .
 | A1 | `yes` / `no` · A2 `1-2` / `3-4` / `5+` · A3 faculty code · A4 1–5 (5 = 5th year or above) · A5 `male`/`female` · A6 `home`/`boarding`/`hostel`/`other` (+ `A6_other` text) |
 | B1 (one-way) | 1 = <5 km, 2 = 5–14, 3 = 15–29, 4 = 30–49, 5 = 50+ |
 | B2 | `bus`, `train`, `three_wheeler`, `private`, `walk_bicycle` |
-| B3 | 0, 1, 2, 3 (=3 or more) |
+| B3 | 0, 1, 2, 3 (=3 or more). Walkers/cyclists (B2 = `walk_bicycle`) are not asked B3–B6; they are saved as B3 = 0, B4 = B5 = B6 = `na` |
 | B4, B5 | `walk`, `bus`, `bicycle`, `three_wheeler`, `dropped`, `na` |
 | B6 | `seat`, `stand`, `na` |
 | B7 (days per week arriving 15+ min late) | 0 = 0 days (never), 1 = 1 day, 2 = 2–3 days, 3 = 4+ days |

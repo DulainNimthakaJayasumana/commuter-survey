@@ -16,6 +16,13 @@ const QMAP = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const STORE_KEY = "usj-commuter-survey-v1";
 
+// Skip logic: a question with an `auto` rule is not shown when the rule returns a value;
+// that value is saved for it instead (e.g. walkers never see the seat / vehicle-change questions).
+const autoValue = (q) => (q.auto ? q.auto(state.answers) : undefined);
+const isSkipped = (id) => !!QMAP[id] && autoValue(QMAP[id]) !== undefined;
+const activeQs = () => QUESTIONS.filter((q) => autoValue(q) === undefined);
+const isLastActive = (q) => activeQs().at(-1)?.id === q.id;
+
 if (new URLSearchParams(location.search).has("new")) {
   try { localStorage.removeItem(STORE_KEY); } catch {}
   history.replaceState(null, "", location.pathname);
@@ -47,9 +54,14 @@ function render(dir = "fwd") {
   if (state.finished) return renderEnd(state.finished, anim);
   if (closed) return renderClosed(anim);
 
+  // Never land on a skipped question (e.g. after switching language or going back).
+  const step = dir === "back" ? -1 : 1;
+  while (isSkipped(PAGES[state.page]) && state.page + step >= 0 && state.page + step < PAGES.length) state.page += step;
+
   const key = PAGES[state.page];
-  const qIndex = state.page - 3;
-  $progress.style.width = qIndex < 0 ? "0%" : `${Math.round((qIndex / QUESTIONS.length) * 100)}%`;
+  const active = activeQs();
+  const qIndex = QMAP[key] ? active.findIndex((q) => q.id === key) : -1;
+  $progress.style.width = qIndex < 0 ? "0%" : `${Math.round((qIndex / active.length) * 100)}%`;
   $langBtn.hidden = !state.lang || state.page < 2;
   if (state.lang) $langBtn.textContent = `🌐 ${LANGS.find((l) => l.code === state.lang).label}`;
   $nav.hidden = state.page < 2;
@@ -133,7 +145,7 @@ function renderBrief(anim) {
 function renderQuestion(q, idx, anim) {
   const u = t();
   const ans = state.answers[q.id];
-  const isLast = idx === QUESTIONS.length - 1;
+  const isLast = isLastActive(q);
   const head = `
     <div class="eyebrow"><span class="qnum">${q.id}</span><span class="dot"></span><span>${u.sections[q.section]}</span></div>
     ${q.pre ? `<p class="pre">${esc(L(q.pre))}</p>` : ""}
@@ -212,7 +224,8 @@ function renderClosed(anim) {
 
 // ---------------------------------------------------------------- flow
 function go(delta) {
-  const next = state.page + delta;
+  let next = state.page + delta;
+  while (isSkipped(PAGES[next])) next += delta; // jump over skipped questions
   if (next < 0 || next >= PAGES.length) return;
   state.page = next;
   persist();
@@ -238,7 +251,7 @@ function tryNext() {
   const q = QMAP[key];
   const err = q && missingMsg(q);
   if (err) return showErr(err);
-  if (q && state.page === PAGES.length - 1) return submit();
+  if (q && isLastActive(q)) return submit();
   go(1);
 }
 
@@ -250,7 +263,7 @@ function choose(q, value, stop) {
   if (opt?.other || q.options?.find((o) => o.v === prev)?.other) {
     // Show / hide the "please specify" box.
     clearTimeout(advanceTimer);
-    renderQuestion(q, state.page - 3, "");
+    renderQuestion(q, 0, "");
     const card = $app.querySelector(".card"); card.tabIndex = -1;
     if (opt?.other) document.getElementById("otherInput")?.focus();
     else advanceTimer = setTimeout(() => go(1), 380);
@@ -269,7 +282,7 @@ function choose(q, value, stop) {
     advanceTimer = setTimeout(() => finish(stop), 380);
     return;
   }
-  const isLast = state.page === PAGES.length - 1;
+  const isLast = isLastActive(q);
   if (!isLast) advanceTimer = setTimeout(() => go(1), 380);
 }
 
@@ -281,7 +294,10 @@ function buildRecord(status) {
     startedAt: state.startedAt,
     durationSec: state.startedAt ? Math.round((Date.now() - Date.parse(state.startedAt)) / 1000) : null,
   };
-  for (const q of QUESTIONS) if (state.answers[q.id] !== undefined) rec[q.id] = state.answers[q.id];
+  for (const q of QUESTIONS) {
+    const v = autoValue(q) ?? state.answers[q.id]; // skipped questions get their rule's value
+    if (v !== undefined) rec[q.id] = v;
+  }
   for (const q of QUESTIONS) {
     if (q.options?.some((o) => o.other && o.v === rec[q.id])) rec[q.id + "_other"] = (state.answers[q.id + "_other"] || "").trim().slice(0, 120);
   }
@@ -298,7 +314,7 @@ async function finish(status) {
 
 async function submit() {
   if (busy) return;
-  const missing = QUESTIONS.find((q) => missingMsg(q));
+  const missing = activeQs().find((q) => missingMsg(q));
   if (missing) {
     state.page = PAGES.indexOf(missing.id);
     render("back");
