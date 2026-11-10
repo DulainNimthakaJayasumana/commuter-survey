@@ -37,6 +37,43 @@ let busy = false;
 let closed = false;
 let advanceTimer = null;
 
+// ---- motion helpers
+const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+let navigating = false;   // a page-leave animation is running
+let celebrate = false;    // show confetti once, right after a successful submit
+let lastFrac = null;      // progress at the previous render (for milestone messages)
+const buzz = (p = 8) => { try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(p); } catch {} };  // phone haptics, only after a real tap
+
+function popEl(el) {      // restart the "pop" animation on a chosen option
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+
+function milestone(text) {
+  if (reduceMotion()) return;
+  document.querySelector(".milestone")?.remove();
+  const el = document.createElement("div");
+  el.className = "milestone"; el.setAttribute("role", "status"); el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
+}
+
+function confetti() {
+  if (reduceMotion()) return;
+  const box = document.createElement("div");
+  box.className = "confetti"; box.setAttribute("aria-hidden", "true");
+  const colors = ["#ffffff", "#a6d7a8", "#6db78b", "#f6d365", "#ffb199", "#8ecae6"];
+  for (let i = 0; i < 48; i++) {
+    const p = document.createElement("i");
+    p.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};` +
+      `--dx:${(Math.random() - 0.5) * 160}px;--r:${Math.random() * 720 - 360}deg;` +
+      `width:${6 + Math.random() * 6}px;height:${8 + Math.random() * 8}px;` +
+      `animation-delay:${Math.random() * 0.4}s;animation-duration:${1.8 + Math.random() * 1.4}s`;
+    box.appendChild(p);
+  }
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 4200);
+}
+
 function load() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; }
 }
@@ -63,7 +100,14 @@ function render(dir = "fwd") {
   const key = PAGES[state.page];
   const active = activeQs();
   const qIndex = QMAP[key] ? active.findIndex((q) => q.id === key) : -1;
-  $progress.style.width = qIndex < 0 ? "0%" : `${Math.round((qIndex / active.length) * 100)}%`;
+  const frac = qIndex < 0 ? 0 : qIndex / active.length;
+  $progress.style.width = `${Math.round(frac * 100)}%`;
+  document.body.style.setProperty("--p", frac);   // background drifts as you progress
+  if (lastFrac !== null && dir !== "back" && QMAP[key]) {
+    if (lastFrac < 0.5 && frac >= 0.5) milestone(t().halfway);
+    else if (lastFrac < 0.85 && frac >= 0.85) milestone(t().almost);
+  }
+  lastFrac = frac;
   $langBtn.hidden = !state.lang || state.page < 2;
   if (state.lang) $langBtn.textContent = `🌐 ${LANGS.find((l) => l.code === state.lang).label}`;
   $nav.hidden = state.page < 2;
@@ -121,7 +165,7 @@ function renderLang(anim) {
     <h2 class="q">Choose your language<br><span style="font-weight:500;color:var(--ink-soft)">ඔබේ භාෂාව තෝරන්න · உங்கள் மொழியைத் தேர்ந்தெடுக்கவும்</span></h2>
     <div class="langs">
       ${LANGS.map((l, i) => `
-        <button class="lang-card ${state.lang === l.code ? "selected" : ""}" data-lang="${l.code}" lang="${l.code}">
+        <button class="lang-card ${state.lang === l.code ? "selected" : ""}" data-lang="${l.code}" lang="${l.code}" style="--i:${i}">
           <span><span class="big">${l.label}</span></span>
           <span class="small">${LETTERS[i]} · ${l.sub}</span>
         </button>`).join("")}
@@ -144,12 +188,23 @@ function renderBrief(anim) {
   </section>`;
 }
 
-function renderQuestion(q, idx, anim) {
+function renderQuestion(q, _idx, anim) {
   const u = t();
   const ans = state.answers[q.id];
+  const active = activeQs();
+  const idx = active.findIndex((x) => x.id === q.id);
   const isLast = isLastActive(q);
+  // One thin bar per section: finished sections are full, the current one fills as you go.
+  const secs = [...new Set(active.map((x) => x.section))];
+  const cur = secs.indexOf(q.section);
+  const steps = secs.map((s, si) => {
+    const inSec = active.filter((x) => x.section === s);
+    const f = si < cur ? 1 : si > cur ? 0 : inSec.findIndex((x) => x.id === q.id) / inSec.length;
+    return `<span class="${si === cur ? "cur" : ""}"><i style="width:${Math.round(f * 100)}%"></i></span>`;
+  }).join("");
   const head = `
-    <div class="eyebrow"><span class="qnum">${q.id}</span><span class="dot"></span><span>${u.sections[q.section]}</span></div>
+    <div class="steps" aria-hidden="true">${steps}</div>
+    <div class="eyebrow"><span class="qnum">${q.id}</span><span class="dot"></span><span>${u.sections[q.section]}</span><span class="count">${idx + 1} / ${active.length}</span></div>
     ${q.pre ? `<p class="pre">${esc(L(q.pre))}</p>` : ""}
     <h2 class="q">${esc(L(q.q))}</h2>
     ${q.help ? `<p class="help">${esc(L(q.help))}</p>` : ""}
@@ -160,7 +215,7 @@ function renderQuestion(q, idx, anim) {
     const twoCol = q.options.length >= 8 ? "two-col" : "";
     body = `<div class="options ${twoCol}" role="radiogroup" aria-label="${esc(L(q.q))}">
       ${q.options.map((o, i) => `
-        <button class="opt ${ans === o.v ? "selected" : ""}" role="radio" aria-checked="${ans === o.v}" data-i="${i}">
+        <button class="opt ${ans === o.v ? "selected" : ""}" role="radio" aria-checked="${ans === o.v}" data-i="${i}" style="--i:${i}">
           <span class="key">${LETTERS[i]}</span><span class="lbl">${esc(L(o.label))}</span>
           <svg class="tick" width="18" height="18" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>`).join("")}
@@ -172,7 +227,7 @@ function renderQuestion(q, idx, anim) {
     body = `<div class="scale-wrap">
       <div class="scale" role="radiogroup">
         ${[-3, -2, -1, 0, 1, 2, 3].map((v, i) => `
-          <button class="${ans === v ? "selected" : ""}" role="radio" aria-checked="${ans === v}" data-v="${v}">
+          <button class="${ans === v ? "selected" : ""}" role="radio" aria-checked="${ans === v}" data-v="${v}" style="--i:${i}">
             <span class="num">${v > 0 ? "+" + v : v === 0 ? "0" : "−" + Math.abs(v)}</span>
             <span class="plbl">${esc(L(q.points[i]))}</span>
           </button>`).join("")}
@@ -204,10 +259,11 @@ function renderEnd(kind, anim) {
   const sub = { done: u.doneSub, declined: u.declinedSub, ineligible: u.ineligibleSub }[kind];
   $app.innerHTML = `
   <section class="card end ${anim}">
-    <div class="icon"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="icon check"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <h1>${title}</h1>
     <p>${sub}</p>
   </section>`;
+  if (kind === "done" && celebrate) { celebrate = false; confetti(); }
 }
 
 function renderClosed(anim) {
@@ -226,17 +282,35 @@ function renderClosed(anim) {
 
 // ---------------------------------------------------------------- flow
 function go(delta) {
+  if (navigating) return;
   let next = state.page + delta;
   while (isSkipped(PAGES[next])) next += delta; // jump over skipped questions
   if (next < 0 || next >= PAGES.length) return;
-  state.page = next;
-  persist();
-  render(delta < 0 ? "back" : "fwd");
+  const apply = () => {
+    navigating = false;
+    state.page = next;
+    persist();
+    render(delta < 0 ? "back" : "fwd");
+  };
+  const card = $app.querySelector(".card");
+  if (!card || reduceMotion()) return apply();
+  navigating = true;                       // let the current page slide away first
+  card.classList.remove("enter", "enter-back");
+  card.classList.add(delta < 0 ? "leave-back" : "leave");
+  setTimeout(apply, 150);
 }
 
 function showErr(msg) {
   const el = document.getElementById("err");
   if (el) el.textContent = msg;
+  if (!msg || reduceMotion()) return;
+  // Shake whatever needs attention so the message is impossible to miss.
+  const target = $app.querySelector(msg === t().otherRequired ? ".other-input" : ".options, .scale");
+  if (target) {
+    target.classList.remove("shake"); void target.offsetWidth; target.classList.add("shake");
+    target.addEventListener("animationend", () => target.classList.remove("shake"), { once: true });
+  }
+  buzz([30, 40, 30]);
 }
 
 // Returns an error message if the question isn't answered yet.
@@ -258,6 +332,7 @@ function tryNext() {
 }
 
 function choose(q, value, stop) {
+  buzz();
   const prev = state.answers[q.id];
   state.answers[q.id] = value;
   persist();
@@ -276,7 +351,7 @@ function choose(q, value, stop) {
     const match = q.type === "scale7" ? Number(b.dataset.v) === value : q.options[b.dataset.i].v === value;
     b.classList.toggle("selected", match);
     b.setAttribute("aria-checked", match);
-    if (match) b.classList.add("flash");
+    if (match) popEl(b);
   });
   showErr("");
   clearTimeout(advanceTimer);
@@ -325,9 +400,10 @@ async function submit() {
   }
   busy = true;
   const btn = $app.querySelector('[data-act="submit"]');
-  if (btn) { btn.disabled = true; btn.textContent = t().submitting; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span>${esc(t().submitting)}`; }
   try {
     await saveResponse(buildRecord("complete"));
+    celebrate = true;
     state.finished = "done";
     persist();
     render();
@@ -358,6 +434,7 @@ $app.addEventListener("click", (e) => {
     state.returnTo = null;
     persist();
     $app.querySelectorAll(".lang-card").forEach((c) => c.classList.toggle("selected", c === el));
+    popEl(el); buzz();
     clearTimeout(advanceTimer);
     advanceTimer = setTimeout(() => (back ? (state.page = back, persist(), render()) : go(1)), 320);
     return;
@@ -408,6 +485,32 @@ document.addEventListener("keydown", (e) => {
     $app.querySelector(`.scale button[data-v="${Number(e.key) - 4}"]`)?.click();
   }
 });
+
+// Ripple under the finger / cursor on anything tappable.
+$app.addEventListener("pointerdown", (e) => {
+  const b = e.target.closest(".opt, .scale button, .lang-card, .btn");
+  if (!b || reduceMotion()) return;
+  const r = b.getBoundingClientRect();
+  b.style.setProperty("--rx", `${e.clientX - r.left}px`);
+  b.style.setProperty("--ry", `${e.clientY - r.top}px`);
+  b.classList.remove("rip"); void b.offsetWidth; b.classList.add("rip");
+}, { passive: true });
+
+// Swipe on touch screens: right = back, left = next (same checks as the OK button).
+let touch = null;
+$app.addEventListener("touchstart", (e) => {
+  const p = e.touches[0];
+  touch = e.touches.length === 1 ? { x: p.clientX, y: p.clientY, t: Date.now(), el: e.target } : null;
+}, { passive: true });
+$app.addEventListener("touchend", (e) => {
+  if (!touch || state.finished || closed) return;
+  const p = e.changedTouches[0];
+  const dx = p.clientX - touch.x, dy = p.clientY - touch.y;
+  const ok = Date.now() - touch.t < 700 && !touch.el.closest?.("input") && Math.abs(dx) > 90 && Math.abs(dy) < 45;
+  touch = null;
+  if (!ok) return;
+  if (dx > 0) go(-1); else tryNext();
+}, { passive: true });
 
 $prev.addEventListener("click", () => go(-1));
 $next.addEventListener("click", tryNext);
