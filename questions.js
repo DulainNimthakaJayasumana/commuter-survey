@@ -198,7 +198,6 @@ export const QUESTIONS = [
     options: [
       o("male", "Male", "පුරුෂ", "ஆண்"),
       o("female", "Female", "ස්ත්‍රී", "பெண்"),
-      o("prefer_not", "Prefer not to say", "පැවසීමට අකමැතියි", "கூற விரும்பவில்லை"),
     ],
   },
   {
