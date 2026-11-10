@@ -52,7 +52,7 @@ npx serve .
 | B11 | share of daily budget/allowance spent on travel: 0 = nothing (0%), 1 = <10%, 2 = 10–25%, 3 = 26–50%, 4 = >50% (walkers/cyclists skipped → 0) |
 | B12 | feels unsafe on the journey: 1 Never … 4 Often |
 | D3 | crowding of the bus/train today: 1 = not crowded … 5 = extremely crowded. Only asked when B2 is bus or train; blank for everyone else |
-| D4 | weather / discomfort made it harder: 1 Not at all … 4 Very much |
+| D4 | weather (heat, humidity, rain) made the commute harder today: 1 Not at all … 5 Extremely |
 | C1–C3 | −3 (stressed / worried / hurried) … +3 (relaxed / confident / calm) |
 | C4 | 1 Not at all … 5 Very much |
 | D1 | 1 Very poor … 5 Very good (sleep) |
